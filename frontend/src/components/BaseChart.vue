@@ -12,38 +12,98 @@ interface Props {
     series: { name: string; data: number[] }[]
 }
 
+
+const cssVar = ((
+    name: string,
+    fallback: string = '',
+    element: HTMLElement = document.documentElement
+): string => getComputedStyle(element).getPropertyValue(name).trim() || fallback);
+
+
 const props = defineProps<Props>()
 
 const chartRef = ref<HTMLDivElement | null>(null)
 
 const { setOptions } = useEChart(chartRef)
 
-const options = computed<EChartsOption>(() => ({
+
+const buildOptions = (): EChartsOption => ({
+    backgroundColor: cssVar('--color-base-100'),
+
+    color: [
+        cssVar('--color-primary'),
+        cssVar('--color-secondary'),
+        cssVar('--color-accent'),
+        cssVar('--color-info'),
+        cssVar('--color-success'),
+        cssVar('--color-warning'),
+        cssVar('--color-error')
+    ],
+
+    textStyle: {
+        color: cssVar('--color-base-content'),
+        fontFamily: 'Inter, sans-serif'
+    },
+
+    grid: {
+        left: 20,
+        right: 20,
+        top: 50,
+        bottom: 30,
+        containLabel: true
+    },
+
+    tooltip: { trigger: 'axis' },
+
+    legend: {
+        top: 10
+    },
+
     xAxis: {
         type: 'category',
-        data: props.categories
+        data: props.categories,
     },
+
     yAxis: {
         type: 'value'
     },
+
     series: props.series.map(s => ({
-        name: s.name,
-        type: 'bar',
+        ...s,
+        type: 'line',
         smooth: true,
-        data: s.data
-    }))
-}))
+        showSymbol: false,
+        lineStyle: { width: 3 },
+        areaStyle: { opacity: 0.15 },
+
+        emphasis: {
+            focus: 'none', // prevents dimming others
+            lineStyle: {
+                width: 3
+            },
+            areaStyle: {
+                opacity: 0.15
+            }
+        }
+    })),
+
+    animationDuration: 600
+})
+
+
+const options = computed<EChartsOption>(() => buildOptions())
 
 onMounted(() => {
+    console.log(options.value);
     setOptions(options.value)
 })
 
 watch(
-    options,
-    (newOptions) => {
-        setOptions(newOptions)
+    () => [props.categories, props.series],
+    () => {
+        setOptions(buildOptions())
     },
-    { immediate: true }
+    { deep: true, immediate: true }
 )
 </script>
 
