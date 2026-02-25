@@ -1,9 +1,11 @@
 package server
 
 import (
+	"backend/internal/api/auth"
+	"backend/internal/api/device"
+	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -23,27 +25,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	r.Route("/api", func(r chi.Router) {
-		r.Mount("/user", user.RegisterModule(s.db.GetInstance()))
-	})
+	r.Mount("/auth", auth.RegisterModule(s.db.GetInstance()))
 
-	r.Get("/", s.HelloWorldHandler)
+	r.Route("/api", func(r chi.Router) {
+		r.Mount("/users", user.RegisterModule(s.db.GetInstance()))
+		r.Mount("/devices", device.RegisterModule(s.db.GetInstance()))
+		r.Mount("/energy-readings", energyreading.RegisterModule(s.db.GetInstance()))
+	})
 
 	r.Get("/health", s.healthHandler)
 
 	return r
-}
-
-func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
-	resp := make(map[string]string)
-	resp["message"] = "Hello World"
-
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Fatalf("error handling JSON marshal. Err: %v", err)
-	}
-
-	_, _ = w.Write(jsonResp)
 }
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {

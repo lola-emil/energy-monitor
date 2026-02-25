@@ -17,6 +17,12 @@ type AuthHandler struct {
 	authRepo *AuthRepo
 }
 
+func NewAuthHandler(authRepo *AuthRepo) *AuthHandler {
+	return &AuthHandler{
+		authRepo: authRepo,
+	}
+}
+
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -130,4 +136,12 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (h *AuthHandler) TestFunction(w http.ResponseWriter, r *http.Request) {
+	response := map[string]string{
+		"message": "hello from auth module",
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
