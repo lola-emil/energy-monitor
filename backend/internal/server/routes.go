@@ -5,6 +5,7 @@ import (
 	"backend/internal/api/device"
 	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
+	"backend/internal/ws"
 	"encoding/json"
 	"net/http"
 
@@ -34,6 +35,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	})
 
 	r.Get("/health", s.healthHandler)
+
+	// INITILIZE WEBSOCKET
+	r.HandleFunc("/ws", ws.HandleWSConnections)
 
 	return r
 }

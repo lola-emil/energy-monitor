@@ -70,7 +70,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token, err := jwtutil.CreateToken(jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-		"iss":     "what-the-fack",
+		"iss":     "what-the-fack", // issuer
 	})
 
 	if err != nil {

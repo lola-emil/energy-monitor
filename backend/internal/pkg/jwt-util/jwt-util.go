@@ -2,6 +2,7 @@ package jwtutil
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,7 +20,7 @@ type RefreshTokenClaims struct {
 	jwt.RegisteredClaims
 }
 
-var signingKey = []byte("my-secret-key")
+var signingKey = []byte(os.Getenv("JWT_SECRET"))
 
 func CreateToken(claims jwt.MapClaims) (*string, error) {
 
@@ -82,7 +83,7 @@ func VerifyAccessToken(tokenString string) (*AccessTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,
-		func(token *jwt.Token) (interface{}, error) {
+		func(token *jwt.Token) (any, error) {
 			return signingKey, nil
 		},
 	)
