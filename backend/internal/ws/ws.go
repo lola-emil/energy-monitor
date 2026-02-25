@@ -18,7 +18,7 @@ func HandleWSConnections(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		log.Fatalf("Websocket error: %s", err)
+		log.Println("Websocket error: ", err)
 		return
 	}
 
@@ -29,7 +29,7 @@ func HandleWSConnections(w http.ResponseWriter, r *http.Request) {
 		_, msg, err := ws.ReadMessage()
 
 		if err != nil {
-			fmt.Println("read error: ", err)
+			log.Println("read error: ", err)
 			break
 		}
 
