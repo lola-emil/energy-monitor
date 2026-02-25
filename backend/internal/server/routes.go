@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/internal/api/user"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -21,6 +22,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	r.Route("/api", func(r chi.Router) {
+		r.Mount("/user", user.RegisterModule(s.db.GetInstance()))
+	})
 
 	r.Get("/", s.HelloWorldHandler)
 

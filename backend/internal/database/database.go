@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -10,11 +9,13 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
 )
 
 // Service represents a service that interacts with a database.
 type Service interface {
+	GetInstance() *sqlx.DB
 	// Health returns a map of health status information.
 	// The keys and values in the map are service-specific.
 	Health() map[string]string
@@ -25,7 +26,7 @@ type Service interface {
 }
 
 type service struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 var (
@@ -44,7 +45,7 @@ func New() Service {
 		return dbInstance
 	}
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	db, err := sql.Open("pgx", connStr)
+	db, err := sqlx.Open("pgx", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,6 +53,10 @@ func New() Service {
 		db: db,
 	}
 	return dbInstance
+}
+
+func (s *service) GetInstance() *sqlx.DB {
+	return s.db
 }
 
 // Health checks the health of the database connection by pinging the database.
