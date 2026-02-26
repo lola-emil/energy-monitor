@@ -1,13 +1,19 @@
 package energyreading
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type EnergyReading struct {
-	ID       int64
+	ID int64
+
 	DeviceId int64
-	Voltage  float32
-	Current  float32
-	PowerKwh float32
+
+	Voltage  decimal.Decimal
+	Current  decimal.Decimal
+	PowerKwh decimal.Decimal
 
 	timestamp time.Time
 }
