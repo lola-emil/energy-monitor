@@ -24,3 +24,17 @@ type DeviceClaim struct {
 
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
+
+//  --- DTOs
+
+type DeviceRequest struct {
+	DeviceName     string `json:"device_name" validate:"omitempty,max=50"`
+	DeviceSerial   string `json:"device_serial" validate:"required,max=16"`
+	ApiKeyHash     string `json:"apikey_hash" validate:"required"`
+	ActivationCode string `json:"activation_code" validate:"required,max=50"`
+}
+
+type DeviceClaimRequest struct {
+	DeviceId int64 `json:"device_id" validate:"required,gt=0"`
+	UserId   int64 `json:"user_id" validate:"required,gt=0"`
+}
