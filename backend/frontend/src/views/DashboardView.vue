@@ -16,7 +16,7 @@
             </nav>
 
             <div class="p-4 border-t">
-                <div class="bg-gradient-to-br from-green-100 to-blue-100 p-4 rounded-xl text-sm">
+                <div class="bg-linear-to-br from-green-100 to-blue-100 p-4 rounded-xl text-sm">
                     <p class="font-semibold mb-2">Get More Features</p>
                     <button class="w-full bg-black text-white py-2 rounded-lg mt-3">
                         Explore
@@ -82,7 +82,7 @@
 
 
                 <!-- Promo Section -->
-                <div class="bg-gradient-to-r from-green-200 via-blue-200 to-indigo-200 rounded-2xl p-10 text-center">
+                <div class="bg-linear-to-r from-green-200 via-blue-200 to-indigo-200 rounded-2xl p-10 text-center">
                     <h2 class="text-2xl font-semibold mb-2">
                         Discover More with Our Pro License
                     </h2>
