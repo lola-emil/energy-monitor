@@ -5,6 +5,9 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
+#include <PubSubClient.h>
+#include <WiFi.h>
+
 /* Hardware Serial2 is only available on certain boards.
  * For example the Arduino MEGA 2560
  */
@@ -20,8 +23,42 @@ const int8_t OLED_RESET = -1;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+const char *ssid = "GlobeAtHome_A0177_2.4";
+const char *password = "Octocat.2024..";
+const char *mqtt_server = "192.168.254.101";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+const char *device_id = "esp32s2-01";
+
+static unsigned long lastRead = 0;
+
+void reconnect() {
+  if (client.connected())
+    return;
+
+  Serial.print("Attempting MQTT connection...");
+  if (client.connect(device_id)) {
+    Serial.println("connected");
+  } else {
+    Serial.print("failed, rc=");
+    Serial.println(client.state());
+  }
+}
+
 void setup() {
   Serial.begin(115200);
+
+  // Serial2.begin(9600, SERIAL_8N1, 16, 17);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+
+  client.setServer(mqtt_server, 1883);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println("OLED not found");
@@ -37,59 +74,55 @@ void setup() {
 }
 
 void loop() {
+  if (!client.connected())
+    reconnect();
+  client.loop();
 
-  Serial.print("Custom Address:");
-  Serial.println(pzem.readAddress(), HEX);
+  char topic[50];
+  snprintf(topic, sizeof(topic), "sensors/%s/power", device_id);
 
-  // Read the data from the sensor
-  float voltage = pzem.voltage();
-  float current = pzem.current();
-  float power = pzem.power();
-  float energy = pzem.energy();
-  float frequency = pzem.frequency();
-  float pf = pzem.pf();
+  if (millis() - lastRead >= 2000) {
 
-  // Check if the data is valid
-  if (isnan(voltage)) {
-    Serial.println("Error reading voltage");
-  } else if (isnan(current)) {
-    Serial.println("Error reading current");
-  } else if (isnan(power)) {
-    Serial.println("Error reading power");
-  } else if (isnan(energy)) {
-    Serial.println("Error reading energy");
-  } else if (isnan(frequency)) {
-    Serial.println("Error reading frequency");
-  } else if (isnan(pf)) {
-    Serial.println("Error reading power factor");
-  } else {
+    Serial.print("Custom Address:");
+    Serial.println(pzem.readAddress(), HEX);
 
-    // Print the values to the Serial console
-    Serial.print("Voltage: ");
-    Serial.print(voltage);
-    Serial.println("V");
-    Serial.print("Current: ");
-    Serial.print(current);
-    Serial.println("A");
-    Serial.print("Power: ");
-    Serial.print(power);
-    Serial.println("W");
-    Serial.print("Energy: ");
-    Serial.print(energy, 3);
-    Serial.println("kWh");
-    Serial.print("Frequency: ");
-    Serial.print(frequency, 1);
-    Serial.println("Hz");
-    Serial.print("PF: ");
-    Serial.println(pf);
+    // Read the data from the sensor
+    float voltage = pzem.voltage();
+    float current = pzem.current();
+    float power = pzem.power();
+    float energy = pzem.energy();
+    float frequency = pzem.frequency();
+    float pf = pzem.pf();
 
-    display.clearDisplay();
-    display.setCursor(10, 20);
+    lastRead = millis();
 
-    display.printf("%.2fV\n %.3fkWh", voltage, energy);
-    display.display();
+    // Check if the data is valid
+    if (isnan(voltage)) {
+      Serial.println("Error reading voltage");
+    } else if (isnan(current)) {
+      Serial.println("Error reading current");
+    } else if (isnan(power)) {
+      Serial.println("Error reading power");
+    } else if (isnan(energy)) {
+      Serial.println("Error reading energy");
+    } else if (isnan(frequency)) {
+      Serial.println("Error reading frequency");
+    } else if (isnan(pf)) {
+      Serial.println("Error reading power factor");
+    } else {
+
+      // Print the values to the Serial console
+      char payload[100];
+      snprintf(payload, sizeof(payload), "{\"voltage\":%.2f,\"power\":%.3f}",
+               voltage, power);
+
+      client.publish(topic, payload);
+
+      display.clearDisplay();
+      display.setCursor(10, 20);
+
+      display.printf("%.2fV\n %.3fW", voltage, power);
+      display.display();
+    }
   }
-
-  Serial.println();
-  delay(2000);
 }
