@@ -24,7 +24,7 @@ const int8_t OLED_RESET = -1;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 const char *ssid = "GlobeAtHome_A0177_2.4";
-const char *password = "Octocat.2024..";
+const char *password = "<secret ra akong password>";
 const char *mqtt_server = "192.168.254.101";
 
 WiFiClient espClient;
