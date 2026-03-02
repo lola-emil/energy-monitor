@@ -8,8 +8,8 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 
-#include "NetworkComm.hh"
 #include "EnergySensor.hh"
+#include "NetworkComm.hh"
 
 #if defined(ESP32)
 PZEM004Tv30 pzem(Serial2, 16, 17);
@@ -25,7 +25,6 @@ const int8_t OLED_RESET = -1;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-
 WiFiClient wifi;
 PubSubClient client(wifi);
 NetworkComm netc(client);
@@ -34,8 +33,7 @@ static unsigned long lastReadMillis = 0;
 
 void setup() {
   Serial.begin(115200);
-  Serial2.begin(9600, SERIAL_8N1, 16, 17);
-  
+
   netc.initConnection();
   netc.setChipID(ESP.getEfuseMac());
 
@@ -48,7 +46,6 @@ void setup() {
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
 }
-
 
 void loop() {
   netc.connectMQTT();
