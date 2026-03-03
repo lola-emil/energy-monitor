@@ -8,20 +8,20 @@
 class NetworkComm {
 
 private:
-  const char *ssid = "GlobeAtHome_A0177_2.4";
-  const char *password = "letmein123";
-  const char *mqttServer = "192.168.254.101";
+  const char* ssid = "GlobeAtHome_A0177_2.4";
+  const char* password = "letmein123";
+  const char* mqttServer = "192.168.254.101";
 
   unsigned long lastMqttAttempt = 0;
   const unsigned long mqttRetryInterval = 5000; // 5 seconds
 
-  PubSubClient &mqttClient;
+  PubSubClient& mqttClient;
 
   char powerReadingTopic[50];
   char chipID[17];
 
 public:
-  NetworkComm(PubSubClient &m) : mqttClient(m) {}
+  NetworkComm(PubSubClient& m) : mqttClient(m) {}
 
   /**
    * TODO: dapat pa ni butngan ug AP mode
@@ -34,25 +34,26 @@ public:
     const unsigned long timeout = 10000; // 10 seconds
 
     while (WiFi.status() != WL_CONNECTED &&
-           millis() - startAttemptTime < timeout) {
+      millis() - startAttemptTime < timeout) {
       delay(100);
     }
 
     if (WiFi.status() == WL_CONNECTED) {
       mqttClient.setServer(mqttServer, 1883);
-    } else {
+    }
+    else {
       Serial.println("WiFi Failed!");
     }
   }
   void setChipID(uint64_t chipID) {
     snprintf(this->chipID, sizeof(this->chipID), "%04X%08X",
-             (uint16_t)(chipID >> 32), (uint32_t)chipID);
+      (uint16_t)(chipID >> 32), (uint32_t)chipID);
 
     snprintf(powerReadingTopic, sizeof(powerReadingTopic), "sensors/%s/power",
-             chipID);
+      chipID);
   }
 
-  void publishEnergyData(const SensorData &data) {
+  void publishEnergyData(const SensorData& data) {
     if (!mqttClient.connected())
       return;
 
@@ -63,7 +64,7 @@ public:
      *  sa sensor data
      */
     snprintf(payload, sizeof(payload), "{\"voltage\":%.2f,\"power\":%.3f}",
-             data.voltage, data.power);
+      data.voltage, data.power);
 
     mqttClient.publish(powerReadingTopic, payload);
   }
@@ -81,7 +82,8 @@ public:
 
     if (mqttClient.connect(chipID)) {
       Serial.println("connected");
-    } else {
+    }
+    else {
       Serial.print("failed, rc=");
       Serial.println(mqttClient.state());
     }

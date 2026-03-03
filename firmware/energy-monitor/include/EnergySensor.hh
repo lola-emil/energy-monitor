@@ -14,13 +14,22 @@ struct SensorData {
 class EnergySensor {
 
 private:
-  PZEM004Tv30 &pzem;
+  PZEM004Tv30& pzem;
 
 public:
-  EnergySensor(PZEM004Tv30 &p) : pzem(p) {}
+  EnergySensor(PZEM004Tv30& p) : pzem(p) {}
 
   SensorData getData() {
-    return SensorData{pzem.voltage(), pzem.current(),   pzem.power(),
-                      pzem.energy(),  pzem.frequency(), pzem.pf()};
+    return SensorData{ pzem.voltage(), pzem.current(),   pzem.power(),
+                      pzem.energy(),  pzem.frequency(), pzem.pf() };
+  }
+
+  boolean isSensorDataValid() {
+    return isnan(pzem.voltage())
+      || isnan(pzem.current())
+      || isnan(pzem.power())
+      || isnan(pzem.energy())
+      || isnan(pzem.frequency())
+      || isnan(pzem.pf());
   }
 };
