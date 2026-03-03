@@ -8,14 +8,15 @@ class OledDisplay {
 private:
     Adafruit_SSD1306& display;
 
+    boolean oledNotFound = false;
+
 public:
     OledDisplay(Adafruit_SSD1306& d) : display(d) {}
 
     void setup() {
         if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
             Serial.println("OLED not found");
-            while (true)
-                ;
+            oledNotFound = true;
         }
 
         display.setTextSize(2);
@@ -23,6 +24,8 @@ public:
     }
 
     void printf(const char* format, ...) {
+        if (oledNotFound) return;
+
         char buffer[64];
         va_list args;
         va_start(args, format);
