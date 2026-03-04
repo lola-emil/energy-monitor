@@ -45,6 +45,7 @@ public:
       Serial.println("WiFi Failed!");
     }
   }
+
   void setChipID(uint64_t chipID) {
     snprintf(this->chipID, sizeof(this->chipID), "%04X%08X",
       (uint16_t)(chipID >> 32), (uint32_t)chipID);
@@ -59,12 +60,19 @@ public:
 
     char payload[100];
 
-    /**
-     * TODO: kailangan pud labuton ang uban nga value
-     *  sa sensor data
-     */
-    snprintf(payload, sizeof(payload), "{\"voltage\":%.2f,\"power\":%.3f}",
-      data.voltage, data.power);
+    snprintf(payload, sizeof(payload),
+      "{\"voltage\":%.2f,"
+      "\"current\":%.3f,"
+      "\"power\":%.3f,"
+      "\"energy\":%.3f,"
+      "\"frequency\":%.2f,"
+      "\"pf\":%.3f}",
+      data.voltage,
+      data.current,
+      data.power,
+      data.energy,
+      data.frequency,
+      data.pf);
 
     mqttClient.publish(powerReadingTopic, payload);
   }

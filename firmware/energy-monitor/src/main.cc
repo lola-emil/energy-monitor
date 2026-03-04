@@ -13,16 +13,15 @@
 #include "OledDisplay.hh"
 
 #if defined(ESP32)
-PZEM004Tv30 pzem(Serial2, 16, 17);
+PZEM004Tv30 pzem(Serial2, RX2, TX2);
 #else
 PZEM004Tv30 pzem(Serial2);
 #endif
-
 EnergySensor sensor(pzem);
 
-const uint16_t SCREEN_WIDTH = 128;
-const uint16_t SCREEN_HEIGHT = 64;
-const int8_t OLED_RESET = -1;
+constexpr uint16_t SCREEN_WIDTH = 128;
+constexpr uint16_t SCREEN_HEIGHT = 64;
+constexpr int8_t   OLED_RESET = -1;
 
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 OledDisplay display(oled);
@@ -36,6 +35,8 @@ static unsigned long lastReadMillis = 0;
 void setup() {
   Serial.begin(115200);
 
+  Serial2.begin(9600, SERIAL_8N1, RX2, TX2);
+  
   netc.initConnection();
   netc.setChipID(ESP.getEfuseMac());
 
@@ -50,7 +51,7 @@ void loop() {
 
     lastReadMillis = millis();
     if (!sensor.isSensorDataValid()) {
-      display.printf("SENS_ERR");
+      display.printf("PZEM_ERR");
 
       return;
     }
