@@ -49,15 +49,17 @@ void loop() {
   if (millis() - lastReadMillis >= 2000) {
 
     lastReadMillis = millis();
+    if (!sensor.isSensorDataValid()) {
+      display.printf("SENS_ERR");
 
-
-    if (sensor.isSensorDataValid()) {
-      SensorData sensorData = sensor.getData();
-
-      netc.publishEnergyData(sensorData);
-
-      display.printf("%.2fV\n %.3fW", sensorData.voltage, sensorData.power);
+      return;
     }
+
+    SensorData sensorData = sensor.getData();
+
+    netc.publishEnergyData(sensorData);
+
+    display.printf("%.2fV\n %.3fW", sensorData.voltage, sensorData.power);
 
   }
 }
