@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RotateCw, Sun, Moon, Settings } from "lucide-vue-next"
+import { RotateCw, Sun, Settings } from "lucide-vue-next"
 </script>
 
 <template>

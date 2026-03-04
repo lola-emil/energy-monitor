@@ -1,5 +1,8 @@
+import AnalyticsView from '@/views/AnalyticsView.vue'
+import CostMonitoringView from '@/views/CostMonitoringView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import DeviceListView from '@/views/DeviceListView.vue'
+import SettingsView from '@/views/SettingsView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -12,7 +15,21 @@ const router = createRouter({
     {
       path: "/devices",
       component: DeviceListView
-    }
+    },
+    {
+      path: "/cost-monitor",
+      component: CostMonitoringView
+    },
+
+    {
+      path: "/analytics",
+      component: AnalyticsView
+    },
+
+    {
+      path: "/settings",
+      component: SettingsView
+    },
   ],
 })
 
