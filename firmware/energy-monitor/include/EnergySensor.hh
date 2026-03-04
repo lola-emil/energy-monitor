@@ -25,11 +25,11 @@ public:
   }
 
   boolean isSensorDataValid() {
-    return isnan(pzem.voltage())
-      || isnan(pzem.current())
-      || isnan(pzem.power())
-      || isnan(pzem.energy())
-      || isnan(pzem.frequency())
-      || isnan(pzem.pf());
+    return !isnan(pzem.voltage())
+      || !isnan(pzem.current())
+      || !isnan(pzem.power())
+      || !isnan(pzem.energy())
+      || !isnan(pzem.frequency())
+      || !isnan(pzem.pf());
   }
 };
