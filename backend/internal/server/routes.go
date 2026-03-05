@@ -5,7 +5,6 @@ import (
 	"backend/internal/api/device"
 	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
-	"backend/internal/ws"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -55,7 +54,7 @@ func SPAHandler(staticPath string) http.HandlerFunc {
 	})
 }
 
-func (s *Server) RegisterRoutes() http.Handler {
+func (s *Server) RegisterRoutes(wsHub *WSHub) http.Handler {
 	viteURL, _ := url.Parse("http://localhost:5173")
 	viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 
@@ -80,8 +79,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.Get("/health", s.healthHandler)
 
-	// INITILIZE WEBSOCKET
-	r.HandleFunc("/ws", ws.HandleWSConnections)
+	// Websocket connection
+	r.Get("/ws", wsHub.HandleWSConnections)
 
 	// Serve SPA
 	if os.Getenv("ENV") == "dev" {

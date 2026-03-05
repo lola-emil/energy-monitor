@@ -26,7 +26,13 @@ func NewServer() *http.Server {
 		db: database.New(),
 	}
 
-	routes := NewServer.RegisterRoutes()
+	wsHub := NewHub()
+	go wsHub.Run()
+
+	StartMQTT(wsHub)
+	// defer mqttClient.Disconnect(250)
+
+	routes := NewServer.RegisterRoutes(wsHub)
 
 	// Declare Server config
 	server := &http.Server{

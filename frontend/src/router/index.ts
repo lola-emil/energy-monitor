@@ -1,3 +1,4 @@
+import WSTestView from '@/views/ WSTestView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import DeviceListView from '@/views/DeviceListView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -12,6 +13,10 @@ const router = createRouter({
     {
       path: "/devices",
       component: DeviceListView
+    },
+    {
+      path: "/ws-test",
+      component: WSTestView
     }
   ],
 })
