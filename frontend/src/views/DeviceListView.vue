@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Sun, Moon, Settings, Plus } from "lucide-vue-next"
+import { Sun, Wifi, Settings, Plus } from "lucide-vue-next"
 import { ref } from "vue";
 
 const items = ref([1, 2, 3, 4, 5, 6, 7]);
@@ -51,7 +51,20 @@ const items = ref([1, 2, 3, 4, 5, 6, 7]);
                 
                 <div class="divider"></div>
 
-                <div class="mt-3">
+                <div class="mt-3 grid grid-cols-3 gap-3">
+                    <div class="border p-3 rounded" v-for="value in items">
+                        <p class="text-lg">Refrigerator</p>
+                        <p class="text-sm">Appliance</p>
+                        <br>
+                        <p class="text-sm">Last seen: 1 min ago</p>
+                        <div class="divider"></div>
+                        <div>
+                            <div class="badge badge-success">
+                                <Wifi :size="18"/>
+                                Online
+                            </div>
+                        </div>
+                    </div>         
                 </div>
             </section>
         </div>
