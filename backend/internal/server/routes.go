@@ -5,12 +5,16 @@ import (
 	"backend/internal/api/device"
 	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
+	jwtutil "backend/internal/pkg/jwt-util"
+	"backend/internal/ws"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -54,7 +58,7 @@ func SPAHandler(staticPath string) http.HandlerFunc {
 	})
 }
 
-func (s *Server) RegisterRoutes(wsHub *WSHub) http.Handler {
+func (s *Server) RegisterRoutes(wsHub *ws.WSHub) http.Handler {
 	viteURL, _ := url.Parse("http://localhost:5173")
 	viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 
@@ -72,6 +76,8 @@ func (s *Server) RegisterRoutes(wsHub *WSHub) http.Handler {
 	r.Mount("/auth", auth.RegisterModule(s.db.GetInstance()))
 
 	r.Route("/api", func(r chi.Router) {
+		r.Use(s.AuthMiddleware)
+
 		r.Mount("/users", user.RegisterModule(s.db.GetInstance()))
 		r.Mount("/devices", device.RegisterModule(s.db.GetInstance()))
 		r.Mount("/energy-readings", energyreading.RegisterModule(s.db.GetInstance()))
@@ -95,4 +101,32 @@ func (s *Server) RegisterRoutes(wsHub *WSHub) http.Handler {
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResp, _ := json.Marshal(s.db.Health())
 	_, _ = w.Write(jsonResp)
+}
+
+func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		token := parts[1]
+
+		claims, err := jwtutil.VerifyToken(token)
+		if err != nil {
+			http.Error(w, "Invalid Token", http.StatusUnauthorized)
+			return
+		}
+
+		// Optional: store claims in context
+		ctx := context.WithValue(r.Context(), "claims", claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

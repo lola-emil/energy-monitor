@@ -2,6 +2,9 @@ package user
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -28,7 +31,7 @@ func (r *UserRepo) GetUserById(id int64) (*User, error) {
 }
 
 func (r *UserRepo) GetUsers(ctx context.Context) ([]User, error) {
-	query := "SELECT * FROM users WHERE 1"
+	query := "SELECT * FROM users"
 
 	var users []User
 
@@ -39,7 +42,7 @@ func (r *UserRepo) GetUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func (r *UserRepo) SaveUser(ctx context.Context, record User) (int64, error) {
+func (r *UserRepo) SaveUser(ctx context.Context, record CreateUserRequest) (int64, error) {
 	query := `
 		INSERT INTO users (
 			firstname,
@@ -48,56 +51,89 @@ func (r *UserRepo) SaveUser(ctx context.Context, record User) (int64, error) {
 			password,
 			user_role
 		) VALUES (
-			:firstname,
-			:lastname,
-			:email,
-			:password,
-			:user_role
+			$1,
+			$2,
+			$3,
+			$4,
+			$5
 		)
 	`
 
-	result, err := r.db.ExecContext(ctx, query, map[string]any{
-		"firstname": record.Firstname,
-		"lastname":  record.Lastname,
-		"email":     record.Email,
-		"password":  record.PasswordHash,
-		"user_role": record.Role,
-	})
+	fmt.Printf("%+v\n", record)
+
+	result, err := r.db.ExecContext(ctx, query,
+		record.Firstname,
+		record.Lastname,
+		record.Email,
+		record.Password,
+		record.Role,
+	)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.LastInsertId()
+	return result.RowsAffected()
 }
 
-func (r *UserRepo) UpdateUserById(ctx context.Context, id int64, data User) (int64, error) {
+func (r *UserRepo) UpdateUserById(ctx context.Context, id int64, data UpdateUserRequest) (int64, error) {
+	setClauses := []string{}
+	args := []any{}
+	argPos := 1
 
-	query := `
+	if data.Firstname != nil {
+		setClauses = append(setClauses, fmt.Sprintf("firstname = $%d", argPos))
+		args = append(args, data.Firstname)
+		argPos++
+	}
+
+	if data.Lastname != nil {
+		setClauses = append(setClauses, fmt.Sprintf("lastname = $%d", argPos))
+		args = append(args, data.Lastname)
+		argPos++
+	}
+
+	if data.Email != nil {
+		setClauses = append(setClauses, fmt.Sprintf("email = $%d", argPos))
+		args = append(args, data.Email)
+		argPos++
+	}
+
+	if data.Password != nil {
+		setClauses = append(setClauses, fmt.Sprintf("password = $%d", argPos))
+		args = append(args, data.Password)
+		argPos++
+	}
+
+	if data.Role != nil {
+		setClauses = append(setClauses, fmt.Sprintf("user_role = $%d", argPos))
+		args = append(args, data.Role)
+		argPos++
+	}
+
+	if len(setClauses) == 0 {
+		return 0, errors.New("no fields to update")
+	}
+
+	query := fmt.Sprintf(`
 		UPDATE users
-		SET
-			firstname = :firstname
-			lastname = :lastname
-			email = :email
-			password = :password
-			user_role = :user_role
-		WHERE
-			id = :id
-	`
+		SET %s
+		WHERE id = $%d
+	`, strings.Join(setClauses, ", "), argPos)
 
-	result, err := r.db.ExecContext(ctx, query, map[string]any{
-		"firstname": data.Firstname,
-		"lastname":  data.Lastname,
-		"email":     data.Email,
-		"password":  data.PasswordHash,
-		"user_role": data.Role,
-	})
+	args = append(args, id)
 
+	result, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
 
-	return result.LastInsertId()
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsAffected, nil
 }
 
 func (r *UserRepo) DeleteUserById(ctx context.Context, id int64) (int64, error) {

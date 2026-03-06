@@ -1,4 +1,4 @@
-package server
+package ws
 
 import (
 	"log"
@@ -9,20 +9,20 @@ import (
 
 type WSHub struct {
 	clients   map[*websocket.Conn]bool
-	broadcast chan []byte
+	Broadcast chan []byte
 }
 
 func NewHub() *WSHub {
 	return &WSHub{
 		clients:   make(map[*websocket.Conn]bool),
-		broadcast: make(chan []byte),
+		Broadcast: make(chan []byte),
 	}
 }
 
 func (h *WSHub) Run() {
 	log.Println("WS running..")
 	for {
-		msg := <-h.broadcast
+		msg := <-h.Broadcast
 
 		for client := range h.clients {
 			err := client.WriteMessage(websocket.TextMessage, msg)

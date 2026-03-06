@@ -15,7 +15,9 @@ func NewUserRoute(handler *UserHandler) *UserRoute {
 func (r *UserRoute) RegisterRoutes() *chi.Mux {
 	mux := chi.NewRouter()
 
-	mux.Get("/", r.handler.GetUser)
+	mux.Get("/", r.handler.GetUsers)
+	mux.Get("/{id}", r.handler.GetUser)
+	mux.Patch("/{id}", r.handler.UpdateUser)
 
 	return mux
 }

@@ -1,12 +1,13 @@
-package server
+package mymqtt
 
 import (
+	"backend/internal/ws"
 	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-func StartMQTT(wsHub *WSHub) mqtt.Client {
+func StartMQTT(wsHub *ws.WSHub) mqtt.Client {
 
 	opts := mqtt.NewClientOptions().
 		AddBroker("tcp://127.0.0.1:1883").
@@ -28,13 +29,8 @@ func StartMQTT(wsHub *WSHub) mqtt.Client {
 
 	log.Println("MQTT connected")
 
-	token = client.Subscribe("#", 0, func(c mqtt.Client, m mqtt.Message) {
-		payload := string(m.Payload())
-
-		log.Println("MQTT:", payload)
-
-		wsHub.broadcast <- []byte(payload)
-	})
+	topicHandler := NewTopicHandler(wsHub)
+	token = client.Subscribe("#", 0, topicHandler.SubEnergyReadinTopic)
 
 	token.Wait()
 	if token.Error() != nil {

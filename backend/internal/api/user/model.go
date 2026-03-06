@@ -16,7 +16,7 @@ type User struct {
 
 	Email        string `db:"email" json:"email"`
 	PasswordHash string `db:"password" json:"-"`
-	Role         Role   `db:"role" json:"role"`
+	Role         Role   `db:"user_role" json:"user_role"`
 
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
@@ -24,8 +24,17 @@ type User struct {
 
 // -- DTO
 type CreateUserRequest struct {
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
+	Firstname string `json:"firstname" validate:"required,min=2,max=50"`
+	Lastname  string `json:"lastname" validate:"required,min=2,max=50"`
+	Email     string `json:"email" validate:"required,email"`
+	Password  string `json:"password" validate:"required,min=8,containsany=0123456789"`
+	Role      Role   `json:"user_role" db:"user_role" validate:"required"`
+}
+
+type UpdateUserRequest struct {
+	Firstname *string `json:"firstname" validate:"omitempty,min=2,max=50"`
+	Lastname  *string `json:"lastname"  validate:"omitempty,min=2,max=50"`
+	Email     *string `json:"email"     validate:"omitempty,email"`
+	Password  *string `json:"password"  validate:"omitempty,min=8"`
+	Role      *Role   `json:"user_role" validate:"omitempty,oneof=admin user"`
 }

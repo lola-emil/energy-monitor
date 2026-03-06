@@ -10,6 +10,8 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	"backend/internal/database"
+	mymqtt "backend/internal/my-mqtt"
+	"backend/internal/ws"
 )
 
 type Server struct {
@@ -26,10 +28,10 @@ func NewServer() *http.Server {
 		db: database.New(),
 	}
 
-	wsHub := NewHub()
+	wsHub := ws.NewHub()
 	go wsHub.Run()
 
-	StartMQTT(wsHub)
+	mymqtt.StartMQTT(wsHub)
 	// defer mqttClient.Disconnect(250)
 
 	routes := NewServer.RegisterRoutes(wsHub)

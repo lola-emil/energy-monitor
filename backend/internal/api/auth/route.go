@@ -15,7 +15,8 @@ func NewAuthRoute(handler *AuthHandler) *AuthRoute {
 func (r *AuthRoute) RegisterRoutes() *chi.Mux {
 	mux := chi.NewRouter()
 
-	mux.Get("/", r.handler.TestFunction)
+	mux.Post("/login", r.handler.Login)
+	mux.Post("/register", r.handler.Register)
 
 	return mux
 }

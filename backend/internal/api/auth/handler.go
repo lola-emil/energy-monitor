@@ -3,13 +3,16 @@ package auth
 import (
 	jwtutil "backend/internal/pkg/jwt-util"
 	"backend/internal/pkg/password"
+	validationutil "backend/internal/pkg/validation-util"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -99,6 +102,68 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	defer r.Body.Close()
+
+	var body CreateUserRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid json body", http.StatusInternalServerError)
+		return
+	}
+
+	var validate = validator.New()
+	if err := validate.Struct(body); err != nil {
+		validationutil.WriteValidationErrors(w, err)
+		return
+	}
+
+	exists, err := h.authRepo.EmailExists(body.Email)
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	if exists {
+		http.Error(w, "Email already taken", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := password.HashPassword(body.Password, password.DefaultParams)
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	body.Password = hashedPassword
+
+	newUserId, err := h.authRepo.SaveUser(r.Context(), body)
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]any{
+		"message": "Registration successful",
+		"userId":  newUserId,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -136,12 +201,4 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-func (h *AuthHandler) TestFunction(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{
-		"message": "hello from auth module",
-	}
-
-	json.NewEncoder(w).Encode(response)
 }
