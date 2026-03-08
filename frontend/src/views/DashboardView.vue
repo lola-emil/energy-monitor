@@ -1,23 +1,13 @@
 <script setup lang="ts">
 import useEchart from "@/composables/useECharts";
 import type { EChartsOption } from "echarts";
-import { RotateCw, Sun, Settings, Zap, PhilippinePeso } from "lucide-vue-next";
+import { RotateCw, Zap, PhilippinePeso } from "lucide-vue-next";
 import { onMounted, useTemplateRef } from "vue";
+import Navbar from "@/components/Navbar.vue";
 
 const barChartEl = useTemplateRef<HTMLDivElement>("bar-chart");
 const barChart = useEchart(barChartEl);
 
-const data = [
-    { name: 'Search', value: 110000 },
-    { name: 'Direct', value: 82000 },
-    { name: 'Referral', value: 58000 },
-    { name: 'Unassigned', value: 41000 },
-    { name: 'Social', value: 30000 },
-    { name: 'Newsletter', value: 15000 }
-];
-
-const maxValue = Math.max(...data.map(d => d.value));
-// const roundedMax = Math.ceil(maxValue / 20000) * 20000;
 
 const lineChartOpt: EChartsOption = {
     backgroundColor: 'transparent',
@@ -90,7 +80,7 @@ const lineChartOpt: EChartsOption = {
         {
             name: 'Actual Value',
             type: 'line',
-            smooth: true,
+            // smooth: true,
             data: [48000, 59000, 53000, 68000, 34000, 45000, 30000, 33000, 58000, 46000, 39000, 51000],
             symbol: 'circle',
             symbolSize: 6,
@@ -118,7 +108,7 @@ const lineChartOpt: EChartsOption = {
         {
             name: 'Projected Value',
             type: 'line',
-            smooth: true,
+            // smooth: true,
             data: [60000, 76000, 62000, 78000, 55000, 55000, 41000, 70000, 30000, 63000, 45000, 75000],
             symbol: 'none',
             lineStyle: {
@@ -132,95 +122,61 @@ const lineChartOpt: EChartsOption = {
 
 const pieChartEl = useTemplateRef<HTMLDivElement>("pie-chart");
 const pieChartOpt: EChartsOption = {
-  backgroundColor: 'transparent',
-
-  title: {
-    text: 'Top coupons',
-    subtext: 'Last 7 days',
-    left: 20,
-    top: 15,
-    textStyle: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: '#111827'
-    },
-    subtextStyle: {
-      fontSize: 12,
-      color: '#6B7280'
-    }
-  },
-
-  tooltip: {
-    trigger: 'item',
-    backgroundColor: '#111827',
-    textStyle: { color: '#fff' },
-    formatter: '{b}<br/>{c}%'
-  },
-
-  legend: {
-    orient: 'vertical',
-    bottom: 20,
-    left: 20,
-    itemWidth: 14,
-    itemHeight: 10,
-    icon: 'roundRect',
-    textStyle: {
-      fontSize: 13,
-      color: '#374151'
-    },
-    // formatter: function (name) {
-
-    //   const item = (<any>lineChartOpt.series)[0].data.find((d: any) => d.name === name);
-    //   return `${name} ${item.value}%`;
-    // }
-  },
-
-  series: [
-    {
-      name: 'Coupons',
-      type: 'pie',
-      radius: ['70%', '82%'],
-      center: ['50%', '48%'],
-      avoidLabelOverlap: false,
-      label: { show: false },
-      labelLine: { show: false },
-
-      emphasis: {
-        scale: false
-      },
-
-      data: [
-        {
-          value: 72,
-          name: 'Percentage discount',
-          itemStyle: { color: '#3B82F6' }
-        },
-        {
-          value: 18,
-          name: 'Fixed card discount',
-          itemStyle: { color: '#BFDBFE' }
-        },
-        {
-          value: 10,
-          name: 'Fixed product discount',
-          itemStyle: { color: '#1D4ED8' }
+    
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            type: 'shadow'
         }
-      ]
-    }
-  ],
+    },
 
-  graphic: {
-    type: 'text',
-    left: 'center',
-    top: '45%',
-    style: {
-      text: '72%',
-    //   textAlign: 'center',
-      fill: '#111827',
-      fontSize: 28,
-      fontWeight: 600
-    }
-  }
+    grid: {
+        left: '5%',
+        right: '5%',
+        bottom: '15%',
+        containLabel: true
+    },
+
+    xAxis: {
+        type: 'category',
+        data: ['Search', 'Direct', 'Referral', 'Unassigned', 'Social', 'Newsletter'],
+        axisTick: { show: false },
+        axisLine: {
+            lineStyle: { color: '#E5E7EB' }
+        },
+        axisLabel: {
+            rotate: 40
+        }
+    },
+
+    yAxis: {
+        type: 'value',
+        min: 0,
+        max: 120000,
+        interval: 20000,
+        axisLine: { show: false },
+        splitLine: {
+            lineStyle: {
+                color: '#E5E7EB'
+            }
+        },
+        axisLabel: {
+            formatter: value => (value / 1000) + 'k'
+        }
+    },
+
+    series: [
+        {
+            name: 'Users',
+            type: 'bar',
+            data: [112000, 82000, 58000, 41000, 30000, 15000],
+            barWidth: 40,
+            itemStyle: {
+                color: '#93B4E7',
+                borderRadius: [8, 8, 0, 0]
+            }
+        }
+    ]
 };
 const pieChart = useEchart(pieChartEl);
 
@@ -229,43 +185,78 @@ onMounted(() => {
     pieChart.setOptions(pieChartOpt);
 })
 
+
+const devices = [
+    {
+        device_name: "Office Router",
+        device_id: "DEV-1001",
+        mac_address: "00:1A:2B:3C:4D:01",
+        status: "online"
+    },
+    {
+        device_name: "Warehouse Sensor",
+        device_id: "DEV-1002",
+        mac_address: "00:1A:2B:3C:4D:02",
+        status: "offline"
+    },
+    {
+        device_name: "Lobby Camera",
+        device_id: "DEV-1003",
+        mac_address: "00:1A:2B:3C:4D:03",
+        status: "online"
+    },
+    {
+        device_name: "Conference Room Display",
+        device_id: "DEV-1004",
+        mac_address: "00:1A:2B:3C:4D:04",
+        status: "offline"
+    },
+    {
+        device_name: "Entrance Door Controller",
+        device_id: "DEV-1005",
+        mac_address: "00:1A:2B:3C:4D:05",
+        status: "online"
+    },
+    {
+        device_name: "Parking Lot Camera",
+        device_id: "DEV-1006",
+        mac_address: "00:1A:2B:3C:4D:06",
+        status: "offline"
+    },
+    {
+        device_name: "Server Room UPS",
+        device_id: "DEV-1007",
+        mac_address: "00:1A:2B:3C:4D:07",
+        status: "online"
+    },
+    {
+        device_name: "Smart Thermostat",
+        device_id: "DEV-1008",
+        mac_address: "00:1A:2B:3C:4D:08",
+        status: "online"
+    },
+    {
+        device_name: "Meeting Room Tablet",
+        device_id: "DEV-1009",
+        mac_address: "00:1A:2B:3C:4D:09",
+        status: "offline"
+    },
+    {
+        device_name: "Backup NAS",
+        device_id: "DEV-1010",
+        mac_address: "00:1A:2B:3C:4D:10",
+        status: "online"
+    }
+];
+
 </script>
 
 <template>
     <main class="bg-base-200">
-        <nav class="w-full h-16 flex items-center shadow">
-            <div class="container mx-auto flex justify-between">
-                <p class="font-semibold lg:text:lg">Dashboard</p>
+        <Navbar />
 
 
-                <div class="flex gap-3">
-                    <label class="swap swap-rotate">
-                        <!-- this hidden checkbox controls the state -->
-                        <input type="checkbox" class="theme-controller" value="synthwave" />
-
-                        <!-- sun icon -->
-                        <Sun />
-
-                        <!-- moon icon -->
-                    </label>
-
-                    <button class="btn btn-square btn-ghost btn-sm">
-                        <Settings />
-                    </button>
-
-                    <div class="avatar avatar-placeholder">
-                        <div class="bg-neutral text-neutral-content w-8 rounded-full">
-                            <span class="text-xs">UI</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-        </nav>
-
-
-        <div class="container mx-auto mt-3 flex flex-col gap-3">
+        <div class=" px-5 mt-3 flex flex-col gap-3">
 
             <div class="my-3 flex justify-between items-end">
                 <div class="flex items-center gap-1">
@@ -278,58 +269,85 @@ onMounted(() => {
                 <div></div>
             </div>
 
-            <section class="grid grid-cols-1 gap-3 min-h-96">
-                <div class="flex items-center justify-center rounded bg-base-100 shadow">
-                    <div ref="bar-chart" class="h-full w-full">
-
-                    </div>
-                </div>
-                <!-- <div class="grid grid-cols-2 gap-3">
-                    <div class="border flex items-center justify-center rounded">
-                        <p>KPI</p>
-                    </div>
-                    <div class="border flex items-center justify-center rounded">
-                        <p>KPI</p>
-                    </div>
-                    <div class="border flex items-center justify-center rounded">
-                        <p>KPI</p>
-                    </div>
-                    <div class="border flex items-center justify-center rounded">
-                        <p>KPI</p>
-                    </div>
-                </div> -->
-            </section>
-
-            <section class="grid grid-cols-2 gap-3 min-h-86">
+            <section class="grid grid-cols-2 gap-3 min-h-150">
                 <div class="flex flex-col gap-3">
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-base-100 shadow p-3 flex items-center gap-4">
-                            <div class="p-2 rounded-lg bg-primary text-primary-content">
-                                <Zap />
-                            </div>
-                            <div>
-                                <p class="font-semibold">Power Consumption</p>
-                                <p class="text-lg">54 kWh</p>
-                            </div>
-                        </div>
-                        <div class="bg-base-100 shadow p-3 flex items-center gap-4">
-                            <div class="p-2 rounded-lg bg-success text-success-content">
-                                <PhilippinePeso/>
-                            </div>
-                            <div>
-                                <p class="font-semibold">Estimated Cost</p>
-                                <p class="text-lg">632.25</p>
+                        <div class="card bg-base-100">
+                            <div class="card-body">
+                                <div class="p-2 rounded-lg bg-primary text-primary-content w-max">
+                                    <Zap />
+                                </div>
+                                <div>
+                                    <p class="font-semibold">Power Consumption</p>
+                                    <p class="text-lg">54 kWh</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="bg-base-100 shadow flex-1 flex items-center justify-center rounded">
-                        <div ref="pie-chart" class="h-full w-full">
 
+                        <div class="card bg-base-100">
+                            <div class="card-body">
+                                <div class="p-2 rounded-lg bg-success text-success-content w-max">
+                                    <PhilippinePeso />
+                                </div>
+                                <div>
+                                    <p class="font-semibold">Estimated Cost</p>
+                                    <p class="text-lg">632.25</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="card bg-base-100 flex-1">
+                        <div class="card-body p-0 flex items-center justify-center">
+                            <div ref="pie-chart" class="h-full w-full flex-1">
+
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="bg-base-100 shadow flex items-center justify-center rounded">Table</div>
+                <div class="card bg-base-100">
+                    <div class="card-body flex items-center justify-center">
+                        <div ref="bar-chart" class="h-full w-full">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 gap-3 min-h-86">
+
+
+
+                <div class="card bg-base-100">
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="value in devices">
+                                    <td>{{ value.device_name }}</td>
+                                    <td>{{ value.device_id }}</td>
+                                    <td>
+                                        <div
+                                            :class="value.status == 'online' ? 'badge badge-soft badge-success' : 'badge badge-soft badge-error'">
+                                            {{ value.status }}
+                                        </div>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
         </div>
     </main>
+
+    <br>
+    <br>
+    <br>
 </template>

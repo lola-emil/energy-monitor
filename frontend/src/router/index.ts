@@ -3,6 +3,7 @@ import AnalyticsView from '@/views/AnalyticsView.vue'
 import CostMonitoringView from '@/views/CostMonitoringView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import DeviceListView from '@/views/DeviceListView.vue'
+import LoginView from '@/views/LoginView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -12,6 +13,10 @@ const router = createRouter({
     {
       path: "/",
       component: DashboardView
+    },
+    {
+      path: "/login",
+      component: LoginView
     },
     {
       path: "/devices",
