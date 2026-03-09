@@ -12,7 +12,7 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      component: DashboardView
+      component: AnalyticsView
     },
     {
       path: "/login",
@@ -29,11 +29,6 @@ const router = createRouter({
     {
       path: "/cost-monitor",
       component: CostMonitoringView
-    },
-
-    {
-      path: "/analytics",
-      component: AnalyticsView
     },
 
     {

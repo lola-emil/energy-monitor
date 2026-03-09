@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Sun, PanelLeftOpen } from "lucide-vue-next";
-
+defineProps<{
+    title: string
+}>();
 </script>
 
 <template>
@@ -11,7 +13,7 @@ import { Sun, PanelLeftOpen } from "lucide-vue-next";
                     <!-- Sidebar toggle icon -->
                     <PanelLeftOpen :size="19" />
                 </label>
-                <div class="px-4">Dashboard</div>
+                <div class="px-4">{{ title }}</div>
             </div>
 
 
@@ -28,7 +30,7 @@ import { Sun, PanelLeftOpen } from "lucide-vue-next";
 
                 <div class="avatar avatar-placeholder">
                     <div class="bg-neutral text-neutral-content w-8 rounded-full">
-                        <span class="text-xs">UI</span>
+                        <span class="text-xs">A</span>
                     </div>
                 </div>
             </div>

@@ -253,7 +253,7 @@ const devices = [
 
 <template>
     <main class="bg-base-200">
-        <Navbar />
+        <Navbar title="Dashboard"/>
 
 
         <div class=" px-5 mt-3 flex flex-col gap-3">
@@ -269,9 +269,9 @@ const devices = [
                 <div></div>
             </div>
 
-            <section class="grid grid-cols-2 gap-3 min-h-150">
-                <div class="flex flex-col gap-3">
-                    <div class="grid grid-cols-2 gap-3">
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div class="flex flex-col gap-3 min-h-150">
+                    <div class="grid grid-cols-2 gap-3 ">
                         <div class="card bg-base-100">
                             <div class="card-body">
                                 <div class="p-2 rounded-lg bg-primary text-primary-content w-max">
@@ -305,7 +305,7 @@ const devices = [
                         </div>
                     </div>
                 </div>
-                <div class="card bg-base-100">
+                <div class="card bg-base-100 min-h-150">
                     <div class="card-body flex items-center justify-center">
                         <div ref="bar-chart" class="h-full w-full">
                         </div>
@@ -314,8 +314,6 @@ const devices = [
             </section>
 
             <section class="grid grid-cols-1 gap-3 min-h-86">
-
-
 
                 <div class="card bg-base-100">
                     <div class="card-body">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Home, MonitorSmartphone, ChartSpline, Settings, LogOut} from "lucide-vue-next"
+import { Home, MonitorSmartphone, LayoutDashboard, Settings, LogOut} from "lucide-vue-next"
 import { RouterLink } from "vue-router"
 </script>
 
@@ -19,28 +19,20 @@ import { RouterLink } from "vue-router"
                 <!-- Sidebar content here -->
                 <ul class="menu w-full grow">
                     <!-- List item -->
+
                     <li>
                         <RouterLink to="/" class="is-drawer-close:tooltip is-drawer-close:tooltip-right"
-                            data-tip="Homepage">
-                            <Home :size="19" />
-                            <span class="is-drawer-close:hidden">Homepage</span>
+                            data-tip="Dashboard & Analytics">
+                            <LayoutDashboard :size="19" />
+                            <span class="is-drawer-close:hidden">Dashboard & Analytics</span>
                         </RouterLink>
                     </li>
-
-                    <li>
-                        <RouterLink to="/analytics" class="is-drawer-close:tooltip is-drawer-close:tooltip-right"
-                            data-tip="Analytics">
-                            <ChartSpline :size="19" />
-                            <span class="is-drawer-close:hidden">Analytics</span>
-                        </RouterLink>
-                    </li>
-
 
                     <li>
                         <RouterLink to="/devices" class="is-drawer-close:tooltip is-drawer-close:tooltip-right"
-                            data-tip="Devices">
+                            data-tip="Your Devices">
                             <MonitorSmartphone :size="19" />
-                            <span class="is-drawer-close:hidden">Devices</span>
+                            <span class="is-drawer-close:hidden">Your Devices</span>
                         </RouterLink>
                     </li>
 
