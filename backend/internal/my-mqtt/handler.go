@@ -1,14 +1,17 @@
 package mymqtt
 
 import (
+	jwtutil "backend/internal/pkg/jwt-util"
 	"backend/internal/ws"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type TopicHandler struct {
@@ -87,10 +90,18 @@ func (th *TopicHandler) AuthenticateDevice(c mqtt.Client, m mqtt.Message) {
 		return
 	}
 
+	// jwt
+	jwtToken, err := jwtutil.CreateToken(jwt.MapClaims{
+		"device_id": device.ID,
+		"exp":       time.Now().Add(time.Hour * 24).Unix(),
+		"iss":       "what-the-fack",
+	})
+
 	resp := map[string]interface{}{
 		"status":    "success",
 		"device_id": device.ID,
 		"message":   "device_authenticated",
+		"token":     jwtToken,
 	}
 
 	data, err := json.Marshal(resp)
