@@ -2,18 +2,24 @@ package mymqtt
 
 import (
 	"backend/internal/ws"
+	"encoding/json"
+	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 type TopicHandler struct {
 	wsHub *ws.WSHub
+	repo  *Repository
 }
 
-func NewTopicHandler(wsHub *ws.WSHub) *TopicHandler {
+func NewTopicHandler(wsHub *ws.WSHub, repo *Repository) *TopicHandler {
 	return &TopicHandler{
 		wsHub: wsHub,
+		repo:  repo,
 	}
 }
 
@@ -23,4 +29,80 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 	log.Println("MQTT:", payload)
 
 	th.wsHub.Broadcast <- []byte(payload)
+}
+
+func (th *TopicHandler) AuthenticateDevice(c mqtt.Client, m mqtt.Message) {
+	payload := string(m.Payload())
+
+	topic := m.Topic()
+	parts := strings.Split(topic, "/")
+	if len(parts) < 3 {
+		log.Println("invalid topic:", topic)
+		return
+	}
+
+	deviceIDStr := parts[1]
+	deviceID, err := strconv.ParseInt(deviceIDStr, 10, 64)
+	if err != nil {
+		log.Println("invalid device id in topic:", deviceIDStr)
+		return
+	}
+
+	var sensorData DeviceAuth
+	if err := json.Unmarshal([]byte(payload), &sensorData); err != nil {
+		log.Println("error unmarshalling JSON:", err)
+
+		resp := map[string]string{
+			"status":  "error",
+			"message": "invalid_payload",
+		}
+
+		data, _ := json.Marshal(resp)
+		c.Publish(fmt.Sprintf("device/%d/auth/response", deviceID), 0, false, data).Wait()
+		return
+	}
+
+	device, err := th.repo.GetDeviceByIdAndSerial(deviceID, sensorData.DeviceSerial)
+	if err != nil {
+		log.Println("device lookup failed:", err)
+
+		resp := map[string]string{
+			"status":  "error",
+			"message": "device_not_found",
+		}
+
+		data, _ := json.Marshal(resp)
+		c.Publish(fmt.Sprintf("device/%d/auth/response", deviceID), 0, false, data).Wait()
+		return
+	}
+
+	if device.ActivationCode != sensorData.ActivationCode {
+		resp := map[string]string{
+			"status":  "error",
+			"message": "invalid_activation_code",
+		}
+
+		data, _ := json.Marshal(resp)
+		c.Publish(fmt.Sprintf("device/%d/auth/response", deviceID), 0, false, data).Wait()
+		return
+	}
+
+	resp := map[string]interface{}{
+		"status":    "success",
+		"device_id": device.ID,
+		"message":   "device_authenticated",
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		log.Println("error marshalling response:", err)
+		return
+	}
+
+	token := c.Publish(fmt.Sprintf("device/%d/auth/response", device.ID), 0, false, data)
+	token.Wait()
+
+	if token.Error() != nil {
+		log.Println("publish error:", token.Error())
+	}
 }

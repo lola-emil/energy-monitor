@@ -16,6 +16,14 @@ func NewDeviceRepo(db *sqlx.DB) *DeviceRepo {
 	}
 }
 
+func (r *DeviceRepo) DeviceExists(deviceSerial string, activationCode string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM devices WHERE device_serial=$1 OR activation_code=$2)`
+
+	var exists bool
+	err := r.db.Get(&exists, query, deviceSerial, activationCode)
+	return exists, err
+}
+
 func (r *DeviceRepo) GetDeviceById(id int64) (*Device, error) {
 	query := "SELECT * FROM devices WHERE id = $1"
 
@@ -28,7 +36,7 @@ func (r *DeviceRepo) GetDeviceById(id int64) (*Device, error) {
 }
 
 func (r *DeviceRepo) GetDevices(ctx context.Context) ([]Device, error) {
-	query := "SELECT * FROM devices WHERE 1"
+	query := "SELECT * FROM devices "
 
 	var devices []Device
 
@@ -39,30 +47,30 @@ func (r *DeviceRepo) GetDevices(ctx context.Context) ([]Device, error) {
 	return devices, nil
 }
 
-func (r *DeviceRepo) SaveDevice(ctx context.Context, record Device) (int64, error) {
+func (r *DeviceRepo) SaveDevice(ctx context.Context, record DeviceRequest) (int64, error) {
 	query := `
 		INSERT INTO devices (
 			device_name,
 			device_serial,
 			activation_code
 		) VALUES (
-			:device_name
-			:device_serial,
-			:activation_code 
+			$1,
+			$2,
+			$3 
 		)
 	`
 
-	result, err := r.db.ExecContext(ctx, query, map[string]any{
-		"device_name":     record.DeviceName,
-		"device_serial":   record.DeviceSerial,
-		"activation_code": record.ActivationCode,
-	})
+	result, err := r.db.ExecContext(ctx, query,
+		record.DeviceName,
+		record.DeviceSerial,
+		record.ActivationCode,
+	)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.LastInsertId()
+	return result.RowsAffected()
 }
 
 func (r *DeviceRepo) UpdateDeviceById(ctx context.Context, id int64, data Device) (int64, error) {
@@ -114,7 +122,7 @@ func (r *DeviceRepo) GetDeviceClaimById(id int64) (*DeviceClaim, error) {
 }
 
 func (r *DeviceRepo) GetDeviceClaims(ctx context.Context, deviceId int64) ([]DeviceClaim, error) {
-	query := "SELECT * FROM device_claims WHERE 1"
+	query := "SELECT * FROM device_claims "
 
 	var devices []DeviceClaim
 

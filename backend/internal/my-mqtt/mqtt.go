@@ -5,9 +5,10 @@ import (
 	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/jmoiron/sqlx"
 )
 
-func StartMQTT(wsHub *ws.WSHub) mqtt.Client {
+func StartMQTT(wsHub *ws.WSHub, db *sqlx.DB) mqtt.Client {
 
 	opts := mqtt.NewClientOptions().
 		AddBroker("tcp://127.0.0.1:1883").
@@ -29,8 +30,12 @@ func StartMQTT(wsHub *ws.WSHub) mqtt.Client {
 
 	log.Println("MQTT connected")
 
-	topicHandler := NewTopicHandler(wsHub)
-	token = client.Subscribe("#", 0, topicHandler.SubEnergyReadinTopic)
+	// DEFINE ANG MGA HANDLER
+	repo := NewRepository(db)
+	topicHandler := NewTopicHandler(wsHub, repo)
+
+	token = client.Subscribe("device/+/auth", 0, topicHandler.AuthenticateDevice)
+	token = client.Subscribe("device/sensor", 0, topicHandler.SubEnergyReadinTopic)
 
 	token.Wait()
 	if token.Error() != nil {
