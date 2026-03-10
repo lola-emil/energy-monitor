@@ -16,7 +16,7 @@ type EnergyReading struct {
 	Current  decimal.Decimal `db:"current"`
 	PowerKwh decimal.Decimal `db:"power_kwh"`
 
-	timestamp time.Time
+	timestamp *time.Time
 }
 
 // --- DTOs

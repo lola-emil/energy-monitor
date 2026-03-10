@@ -6,6 +6,17 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type EnergyReading struct {
+	ID int64
+
+	DeviceId int64           `db:"device_id"`
+	Voltage  decimal.Decimal `db:"voltage"`
+	Current  decimal.Decimal `db:"current"`
+	PowerKwh decimal.Decimal `db:"power_kwh"`
+
+	timestamp *time.Time
+}
+
 type Device struct {
 	ID           int64  `db:"id" json:"id"`
 	DeviceName   string `db:"device_name" json:"device_name"`
