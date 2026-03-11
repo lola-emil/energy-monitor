@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import Navbar from "@/components/Navbar.vue";
+import Sidebar from "@/components/Sidebar.vue";
 import useEchart from "@/composables/useECharts";
 import type { EChartsOption } from "echarts";
-import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer} from "lucide-vue-next"
+import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer } from "lucide-vue-next"
 import { onMounted, ref, useTemplateRef } from "vue";
 
 const devices = [
@@ -42,30 +43,7 @@ const devices = [
         mac_address: "00:1A:2B:3C:4D:06",
         status: "offline"
     },
-    {
-        device_name: "Server Room UPS",
-        device_id: "DEV-1007",
-        mac_address: "00:1A:2B:3C:4D:07",
-        status: "online"
-    },
-    {
-        device_name: "Smart Thermostat",
-        device_id: "DEV-1008",
-        mac_address: "00:1A:2B:3C:4D:08",
-        status: "online"
-    },
-    {
-        device_name: "Meeting Room Tablet",
-        device_id: "DEV-1009",
-        mac_address: "00:1A:2B:3C:4D:09",
-        status: "offline"
-    },
-    {
-        device_name: "Backup NAS",
-        device_id: "DEV-1010",
-        mac_address: "00:1A:2B:3C:4D:10",
-        status: "online"
-    }
+
 ];
 
 const barChartEl = useTemplateRef<HTMLDivElement>("pie-chart");
@@ -184,13 +162,13 @@ const lineChartOpt: EChartsOption = {
 };
 
 function getNowDatetimeLocal() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}`
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
 const dateTime = ref(getNowDatetimeLocal());
@@ -201,136 +179,144 @@ onMounted(() => {
 </script>
 
 <template>
-    <Navbar title="Dashboard & Analytics" />
+    <Sidebar>
 
-    <main class="px-5 mt-3">
-        <div class="my-3 flex justify-between items-end">
-            <div class="flex items-center gap-1">
-                <input type="datetime-local" class="input" v-model="dateTime"/>
+        <Navbar title="Dashboard & Analytics" />
 
-                <button class="btn btn-ghost btn-square">
-                    <RotateCw :size="20" />
-                </button>
-            </div>
-            <div>
-                <button class="btn btn-primary"><Printer :size="19"/> Print Report</button>
-            </div>
-        </div>
-        <section class="grid grid-cols-3 min-h-96 gap-3">
-            <div class="card bg-base-100 col-span-3 lg:col-span-1">
-                <div class="card-body">
-                    <div class="p-3 rounded-lg bg-primary text-white w-max">
-                        <leaf />
-                    </div>
+        <main class="px-5 mt-3">
+            <div class="my-3 flex justify-between items-end">
+                <div class="flex items-center gap-1">
+                    <input type="datetime-local" class="input" v-model="dateTime" />
 
-                    <p class="text-xl mt-3">Total Energy Consumed</p>
-
-
-                    <div>
-                        <p class="text-3xl font-semibold">1,284 kWh</p>
-                    </div>
+                    <button class="btn btn-ghost btn-square">
+                        <RotateCw :size="20" />
+                    </button>
+                </div>
+                <div>
+                    <button class="btn btn-primary">
+                        <Printer :size="19" /> Print Report
+                    </button>
                 </div>
             </div>
-            <div class="col-span-3 lg:col-span-2 grid grid-cols-2 gap-3">
-                <div class="card bg-base-100">
+            <section class="grid grid-cols-3 min-h-96 gap-3">
+                <div class="card bg-base-100 col-span-3 lg:col-span-1">
                     <div class="card-body">
-                        <div class="p-3 bg-primary rounded-lg text-white w-max">
-                            <Plug />
+                        <div class="p-3 rounded-lg bg-primary text-white w-max">
+                            <leaf />
                         </div>
 
-                        <p class="text-lg mt-3">Average Voltage</p>
+                        <p class="text-xl mt-3">Total Energy Consumed</p>
 
 
                         <div>
-                            <p class="text-lg font-semibold">233 V</p>
+                            <p class="text-3xl font-semibold">1,284 kWh</p>
                         </div>
                     </div>
                 </div>
+                <div class="col-span-3 lg:col-span-2 grid grid-cols-2 gap-3">
+                    <div class="card bg-base-100">
+                        <div class="card-body">
+                            <div class="p-3 bg-primary rounded-lg text-white w-max">
+                                <Plug />
+                            </div>
+
+                            <p class="text-lg mt-3">Average Voltage</p>
+
+
+                            <div>
+                                <p class="text-lg font-semibold">233 V</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-base-100">
+                        <div class="card-body">
+                            <div class="p-3 bg-primary rounded-lg text-white w-max">
+                                <Zap />
+                            </div>
+
+                            <p class="text-lg mt-3">Average Power Draw</p>
+
+
+                            <div>
+                                <p class="text-lg font-semibold">50 kWh</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-base-100">
+                        <div class="card-body">
+                            <div class="p-3 bg-primary rounded-lg text-white w-max">
+                                <Atom />
+                            </div>
+
+                            <p class="text-lg mt-3">Average Current</p>
+
+
+                            <div>
+                                <p class="text-lg font-semibold">233 A</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-base-100">
+                        <div class="card-body">
+                            <div class="p-3 bg-primary rounded-lg text-white w-max">
+                                <Radio />
+                            </div>
+
+                            <p class="text-lg mt-3">Frequency</p>
+
+
+                            <div>
+                                <p class="text-lg font-semibold">233 Hz</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="mt-3 min-h-96 grid">
+                <div class="card bg-base-100">
+                    <div class="card-body p-3 px-0">
+                        <div class="p-3 px-5">
+                            <p class="text-lg font-semibold">Energy Usage (Monthly)</p>
+                        </div>
+                        <div ref="pie-chart" class="h-full"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mt-3 h-max grid">
                 <div class="card bg-base-100">
                     <div class="card-body">
-                        <div class="p-3 bg-primary rounded-lg text-white w-max">
-                            <Zap />
-                        </div>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="value in devices">
+                                    <td>{{ value.device_name }}</td>
+                                    <td>{{ value.device_id }}</td>
+                                    <td>
+                                        <div
+                                            :class="value.status == 'online' ? 'badge badge-soft badge-success' : 'badge badge-soft badge-error'">
+                                            {{ value.status }}
+                                        </div>
+                                    </td>
+                                </tr>
 
-                        <p class="text-lg mt-3">Average Power Draw</p>
-
-
-                        <div>
-                            <p class="text-lg font-semibold">50 kWh</p>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </section>
+        </main>
 
-                <div class="card bg-base-100">
-                    <div class="card-body">
-                        <div class="p-3 bg-primary rounded-lg text-white w-max">
-                            <Atom />
-                        </div>
-
-                        <p class="text-lg mt-3">Average Current</p>
-
-
-                        <div>
-                            <p class="text-lg font-semibold">233 A</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card bg-base-100">
-                    <div class="card-body">
-                        <div class="p-3 bg-primary rounded-lg text-white w-max">
-                            <Radio />
-                        </div>
-
-                        <p class="text-lg mt-3">Frequency</p>
-
-
-                        <div>
-                            <p class="text-lg font-semibold">233 Hz</p>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <section class="mt-3 min-h-96 grid">
-            <div class="card bg-base-100">
-                <div class="card-body p-3 px-0">
-                    <div ref="pie-chart" class="h-full"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="mt-3 min-h-125 grid">
-            <div class="card bg-base-100">
-                <div class="card-body">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Device Name</th>
-                                <th>ID</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="value in devices">
-                                <td>{{ value.device_name }}</td>
-                                <td>{{ value.device_id }}</td>
-                                <td>
-                                    <div
-                                        :class="value.status == 'online' ? 'badge badge-soft badge-success' : 'badge badge-soft badge-error'">
-                                        {{ value.status }}
-                                    </div>
-                                </td>
-                            </tr>
-
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <br>
+        <br>
+    </Sidebar>
 </template>
