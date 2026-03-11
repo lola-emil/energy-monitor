@@ -22,3 +22,23 @@ func (r *Repository) GetDeviceByIdAndSerial(id int64, serial string) (*Device, e
 
 	return &device, nil
 }
+
+func (r *Repository) SaveDeviceReadings(data EnergyReadingBody) (int64, error) {
+	query := `
+	INSERT INTO energy_readings 
+	(device_id, voltage, current, power_kwh)
+	VALUES
+	($1, $2, $3, $4)
+	`
+	result, err := r.db.Exec(query,
+		data.DeviceId,
+		data.Voltage,
+		data.Current, data.PowerKwh,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}

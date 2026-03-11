@@ -17,6 +17,13 @@ type EnergyReading struct {
 	timestamp *time.Time
 }
 
+type EnergyReadingBody struct {
+	DeviceId int64
+	Voltage  decimal.Decimal
+	Current  decimal.Decimal
+	PowerKwh decimal.Decimal
+}
+
 type Device struct {
 	ID           int64  `db:"id" json:"id"`
 	DeviceName   string `db:"device_name" json:"device_name"`
@@ -33,8 +40,7 @@ type Device struct {
 }
 
 type SensorData struct {
-	Token    string
-	DeviceId int64           `json:"id"`
+	Token    string          `json:"token"`
 	Voltage  decimal.Decimal `json:"voltage"`
 	Current  decimal.Decimal `json:"current"`
 	PowerKwh decimal.Decimal `json:"power"`

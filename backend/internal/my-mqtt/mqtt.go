@@ -35,7 +35,7 @@ func StartMQTT(wsHub *ws.WSHub, db *sqlx.DB) mqtt.Client {
 	topicHandler := NewTopicHandler(wsHub, repo)
 
 	token = client.Subscribe("device/+/auth", 0, topicHandler.AuthenticateDevice)
-	token = client.Subscribe("device/sensor", 0, topicHandler.SubEnergyReadinTopic)
+	token = client.Subscribe("device/+/sensor", 0, topicHandler.SubEnergyReadinTopic)
 
 	token.Wait()
 	if token.Error() != nil {

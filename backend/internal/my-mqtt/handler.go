@@ -27,9 +27,72 @@ func NewTopicHandler(wsHub *ws.WSHub, repo *Repository) *TopicHandler {
 }
 
 func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
+	topic := m.Topic()
+	parts := strings.Split(topic, "/")
+	if len(parts) < 3 {
+		log.Println("invalid topic:", topic)
+		return
+	}
+
+	deviceIDStr := parts[1]
+	deviceID, err := strconv.ParseInt(deviceIDStr, 10, 64)
+	if err != nil {
+		log.Println("invalid device id in topic:", deviceIDStr)
+		return
+	}
+
 	payload := string(m.Payload())
 
-	log.Println("MQTT:", payload)
+	var sensorData SensorData
+	if err := json.Unmarshal([]byte(payload), &sensorData); err != nil {
+		log.Println("error unmarshalling JSON:", err)
+
+		resp := map[string]string{
+			"status":  "error",
+			"message": "invalid_payload",
+		}
+
+		data, _ := json.Marshal(resp)
+		c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
+		return
+	}
+
+	// VERIFY ANG TOKEN
+	claims, err := jwtutil.VerifyToken(sensorData.Token)
+
+	if err != nil {
+		resp := map[string]string{
+			"message": "Unauthorized",
+		}
+
+		data, _ := json.Marshal(resp)
+		c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
+		return
+	}
+
+	// SAVE ANG DATA SA DB
+	if v, ok := claims["device_id"].(float64); ok {
+		log.Println("Saving sensor data...", claims["device_id"].(float64))
+		body := EnergyReadingBody{
+			DeviceId: int64(v),
+			Voltage:  sensorData.Voltage,
+			Current:  sensorData.Current,
+			PowerKwh: sensorData.PowerKwh,
+		}
+		_, err := th.repo.SaveDeviceReadings(body)
+
+		if err != nil {
+			resp := map[string]string{
+				"message": "SHIT",
+			}
+
+			data, _ := json.Marshal(resp)
+			c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
+			return
+		}
+	}
+
+	// log.Println("MQTT:", payload)
 
 	th.wsHub.Broadcast <- []byte(payload)
 }
