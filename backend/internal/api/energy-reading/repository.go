@@ -47,25 +47,27 @@ func (r *EnergyReadingRepo) SaveEnergyReading(ctx context.Context, record Energy
 			current,
 			power_kwh
 		) VALUES (
-			:device_id,
-			:voltage,
-			:current,
-			:power_kwh
+			$1,
+			$2,
+			$3,
+			$4
 		)
-	`
 
-	result, err := r.db.ExecContext(ctx, query, map[string]any{
+		RETURNING id
+	`
+	var id int64
+	err := r.db.QueryRowContext(ctx, query, map[string]any{
 		"device_id": record.DeviceId,
 		"voltage":   record.Voltage,
 		"current":   record.Current,
 		"power_kwh": record.PowerKwh,
-	})
+	}).Scan(&id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.LastInsertId()
+	return id, nil
 }
 
 func (r *EnergyReadingRepo) UpdateEnergyReadingById(ctx context.Context, id int64, data EnergyReading) (int64, error) {
@@ -73,26 +75,26 @@ func (r *EnergyReadingRepo) UpdateEnergyReadingById(ctx context.Context, id int6
 	query := `
 		UPDATE energy_readings
 		SET
-			device_id = :device_id,
-			voltage =   :voltage
-			current =   :current
-			power_kwh = :power_kwh
+			device_id = $1,
+			voltage =   $2
+			current =   $3
+			power_kwh = $4
 		WHERE
-			id = :id
+			id = $5
 	`
 
-	result, err := r.db.ExecContext(ctx, query, map[string]any{
-		"device_id": data.DeviceId,
-		"voltage":   data.Voltage,
-		"current":   data.Current,
-		"power_kwh": data.PowerKwh,
-	})
+	result, err := r.db.ExecContext(ctx, query,
+		data.DeviceId,
+		data.Voltage,
+		data.Current,
+		data.PowerKwh,
+	)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.LastInsertId()
+	return result.RowsAffected()
 }
 
 func (r *EnergyReadingRepo) DeleteEnergyReadingById(ctx context.Context, id int64) (int64, error) {

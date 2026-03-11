@@ -58,19 +58,20 @@ func (r *DeviceRepo) SaveDevice(ctx context.Context, record DeviceRequest) (int6
 			$2,
 			$3 
 		)
+		RETURNING id
 	`
-
-	result, err := r.db.ExecContext(ctx, query,
+	var id int64
+	err := r.db.QueryRowContext(ctx, query,
 		record.DeviceName,
 		record.DeviceSerial,
 		record.ActivationCode,
-	)
+	).Scan(&id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	return id, nil
 }
 
 func (r *DeviceRepo) UpdateDeviceById(ctx context.Context, id int64, data Device) (int64, error) {
@@ -78,24 +79,26 @@ func (r *DeviceRepo) UpdateDeviceById(ctx context.Context, id int64, data Device
 	query := `
 		UPDATE devices
 		SET
-			device_name = :device_name,
-			device_serial = :device_serial
-			activation_code = :activation_code
+			device_name = $1,
+			device_serial = $2,
+			activation_code = $3
 		WHERE
-			id = :id
+			id = $4
+		RETURNING id
 	`
 
-	result, err := r.db.ExecContext(ctx, query, map[string]any{
-		"device_name":     data.DeviceName,
-		"device_serial":   data.DeviceSerial,
-		"activation_code": data.ActivationCode,
-	})
+	result, err := r.db.ExecContext(ctx,
+		query,
+		data.DeviceName,
+		data.DeviceSerial,
+		data.ActivationCode,
+	)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.LastInsertId()
+	return result.RowsAffected()
 }
 
 func (r *DeviceRepo) DeleteDeviceById(ctx context.Context, id int64) (int64, error) {

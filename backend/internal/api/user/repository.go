@@ -57,23 +57,25 @@ func (r *UserRepo) SaveUser(ctx context.Context, record CreateUserRequest) (int6
 			$4,
 			$5
 		)
+
+		RETURNING id
 	`
 
-	fmt.Printf("%+v\n", record)
-
-	result, err := r.db.ExecContext(ctx, query,
+	// fmt.Printf("%+v\n", record)
+	var id int64
+	err := r.db.QueryRowContext(ctx, query,
 		record.Firstname,
 		record.Lastname,
 		record.Email,
 		record.Password,
 		record.Role,
-	)
+	).Scan(&id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	return id, nil
 }
 
 func (r *UserRepo) UpdateUserById(ctx context.Context, id int64, data UpdateUserRequest) (int64, error) {

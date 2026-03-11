@@ -29,16 +29,19 @@ func (r *Repository) SaveDeviceReadings(data EnergyReadingBody) (int64, error) {
 	(device_id, voltage, current, power_kwh)
 	VALUES
 	($1, $2, $3, $4)
+	RETURNING id
 	`
-	result, err := r.db.Exec(query,
+
+	var id int64
+	err := r.db.QueryRow(query,
 		data.DeviceId,
 		data.Voltage,
 		data.Current, data.PowerKwh,
-	)
+	).Scan(&id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	return id, nil
 }

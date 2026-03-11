@@ -160,7 +160,7 @@ func (th *TopicHandler) AuthenticateDevice(c mqtt.Client, m mqtt.Message) {
 		"iss":       "what-the-fack",
 	})
 
-	resp := map[string]interface{}{
+	resp := map[string]any{
 		"status":    "success",
 		"device_id": device.ID,
 		"message":   "device_authenticated",

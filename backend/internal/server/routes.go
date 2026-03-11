@@ -92,7 +92,7 @@ func (s *Server) RegisterRoutes(wsHub *ws.WSHub) http.Handler {
 	if os.Getenv("ENV") == "dev" {
 		r.Handle("/*", viteProxy)
 	} else {
-		r.Handle("/*", SPAHandler("./frontend/dist"))
+		r.Handle("/*", SPAHandler("../frontend/dist"))
 	}
 
 	return r
