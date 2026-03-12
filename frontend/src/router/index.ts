@@ -1,7 +1,7 @@
 import WSTestView from '@/views/ WSTestView.vue'
 import AnalyticsView from '@/views/AnalyticsView.vue'
 import CostMonitoringView from '@/views/CostMonitoringView.vue'
-import DashboardView from '@/views/DashboardView.vue'
+import DeviceAnalytics from '@/views/DeviceAnalytics.vue'
 import DeviceListView from '@/views/DeviceListView.vue'
 import LoginView from '@/views/LoginView.vue'
 import SettingsView from '@/views/SettingsView.vue'
@@ -20,7 +20,13 @@ const router = createRouter({
     },
     {
       path: "/devices",
-      component: DeviceListView
+      component: DeviceListView,
+      children: [
+        {
+          path: ":deviceId",
+          component: DeviceAnalytics
+        }
+      ]
     },
     {
       path: "/ws-test",

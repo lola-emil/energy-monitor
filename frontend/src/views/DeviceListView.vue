@@ -1,47 +1,53 @@
 <script setup lang="ts">
-import Navbar from "@/components/Navbar.vue";
-import Sidebar from "@/components/Sidebar.vue";
-import { Wifi, Plus } from "lucide-vue-next";
-import { ref } from "vue";
-
-const items = ref([1, 2, 3, 4, 5, 6, 7]);
+import Sidebar from '@/components/Sidebar.vue';
 </script>
 
 <template>
     <Sidebar>
-        <main>
-            <Navbar title="Your Devices" />
+        <div class="flex h-screen bg-base-200">
 
-            <div class="px-5 mt-3">
-                <section>
-                    <div class="w-full flex justify-between my-3 items-end">
-                        <input type="text" class="input" placeholder="Search">
+            <!-- Device List Panel -->
+            <aside class="w-72 bg-base-100 border-r border-base-300 p-4 flex flex-col">
 
-                        <button class="btn btn-primary">
-                            <Plus :size="16" class="p-0" />
-                            Add Device
-                        </button>
+                <h2 class="text-sm opacity-70 mb-4">All Devices</h2>
+
+                <div class="space-y-3">
+
+                    <div class="card bg-base-200 p-3 flex justify-between items-center">
+                        <span>Macbook Air 13</span>
+                        <img class="w-8" src="https://via.placeholder.com/40" />
                     </div>
 
-                    <div class="divider"></div>
-
-                    <div class="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div class="card bg-base-100" v-for="_ in items">
-                            <div class="card-body">
-                                <p class="text-lg">Refrigerator</p>
-                                <p class="text-sm">Last seen: 1 min ago</p>
-                                <div class="divider"></div>
-                                <div>
-                                    <div class="badge badge-success">
-                                        <Wifi :size="18" />
-                                        Online
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card bg-base-200 p-3 flex justify-between items-center">
+                        <span>iPhone 7</span>
+                        <img class="w-6" src="https://via.placeholder.com/30" />
                     </div>
-                </section>
-            </div>
-        </main>
+
+                    <div class="card bg-base-200 p-3 flex justify-between items-center">
+                        <span>iPad</span>
+                        <img class="w-6" src="https://via.placeholder.com/30" />
+                    </div>
+
+                    <div class="card bg-base-200 p-3 flex justify-between items-center">
+                        <span>AirPods</span>
+                        <img class="w-5" src="https://via.placeholder.com/25" />
+                    </div>
+
+                    <button class="btn btn-outline w-full mt-3">
+                        + Add Device
+                    </button>
+
+                </div>
+            </aside>
+
+
+            <!-- Main Dashboard -->
+            <main class="flex-1 p-8 overflow-auto">
+
+                <RouterView/>
+
+            </main>
+
+        </div>
     </Sidebar>
 </template>

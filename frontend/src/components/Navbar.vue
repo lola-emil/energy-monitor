@@ -28,11 +28,7 @@ defineProps<{
                     <!-- moon icon -->
                 </label>
 
-                <div class="avatar avatar-placeholder">
-                    <div class="bg-neutral text-neutral-content w-8 rounded-full">
-                        <span class="text-xs">A</span>
-                    </div>
-                </div>
+
             </div>
         </div>
     </nav>
