@@ -72,6 +72,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// ACCESS TOKEN
 	token, err := jwtutil.CreateToken(jwt.MapClaims{
 		"user_id": user.ID,
+		"role":    user.Role,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 		"iss":     "what-the-fack", // issuer
 	})
