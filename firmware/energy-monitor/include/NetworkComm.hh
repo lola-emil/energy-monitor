@@ -9,8 +9,8 @@ class NetworkComm {
 
 private:
   const char* ssid = "GlobeAtHome_A0177_2.4";
-  const char* password = "letmein123";
-  const char* mqttServer = "192.168.254.101";
+  const char* password = "Octocat.2024..";
+  const char* mqttServer = "192.168.254.112";
 
   unsigned long lastMqttAttempt = 0;
   const unsigned long mqttRetryInterval = 5000; // 5 seconds

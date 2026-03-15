@@ -7,7 +7,7 @@ import { RouterLink } from "vue-router";
 
     <div class="drawer lg:drawer-open">
         <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
-        <div class="drawer-content">
+        <div class="drawer-content h-screen">
 
             <slot />
 
@@ -19,17 +19,6 @@ import { RouterLink } from "vue-router";
                 <!-- Sidebar content here -->
                 <ul class="menu w-full grow">
                     <!-- List item -->
-                    <li>
-                        <RouterLink to="/" class="is-drawer-close:tooltip is-drawer-close:tooltip-right"
-                            data-tip="Dashboard & Analytics">
-                            <div class="avatar avatar-placeholder">
-                                <div class="bg-neutral text-neutral-content w-5 rounded-full">
-                                    <span class="text-xs">A</span>
-                                </div>
-                            </div>
-                            <span class="is-drawer-close:hidden">Profile</span>
-                        </RouterLink>
-                    </li>
                     <li>
                         <RouterLink to="/" class="is-drawer-close:tooltip is-drawer-close:tooltip-right"
                             data-tip="Dashboard & Analytics">

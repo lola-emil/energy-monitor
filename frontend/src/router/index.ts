@@ -23,6 +23,10 @@ const router = createRouter({
       component: DeviceListView,
       children: [
         {
+          path: "",
+          component: DeviceAnalytics
+        },
+        {
           path: ":deviceId",
           component: DeviceAnalytics
         }
