@@ -2,77 +2,71 @@
 
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <WiFiManager.h>
 
 #include "EnergySensor.hh"
 
 class NetworkComm {
 
 private:
-  const char* ssid = "GlobeAtHome_A0177_2.4";
-  const char* password = "Octocat.2024..";
-  const char* mqttServer = "192.168.254.112";
+  const char *ssid = "GlobeAtHome_A0177_2.4";
+  const char *password = "Octocat.2024..";
+  const char *mqttServer = "192.168.254.114";
 
   unsigned long lastMqttAttempt = 0;
   const unsigned long mqttRetryInterval = 5000; // 5 seconds
 
-  PubSubClient& mqttClient;
+  PubSubClient &mqttClient;
+  WiFiManager &wifiManager;
 
   char powerReadingTopic[50];
   char chipID[17];
 
 public:
-  NetworkComm(PubSubClient& m) : mqttClient(m) {}
+  NetworkComm(PubSubClient &m, WiFiManager &wm)
+      : mqttClient(m), wifiManager(wm) {}
 
   /**
    * TODO: dapat pa ni butngan ug AP mode
    * para maka input sa bago nga wifi password
    */
   void initConnection() {
-    WiFi.begin(ssid, password);
+    if (!wifiManager.autoConnect(
+            "ESP32_AP")) { 
+      Serial.println("Failed to connect and hit timeout");
+      delay(3000);
 
-    unsigned long startAttemptTime = millis();
-    const unsigned long timeout = 10000; // 10 seconds
-
-    while (WiFi.status() != WL_CONNECTED &&
-      millis() - startAttemptTime < timeout) {
-      delay(100);
+      ESP.restart();
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
-      mqttClient.setServer(mqttServer, 1883);
-    }
-    else {
-      Serial.println("WiFi Failed!");
-    }
+    Serial.print("Connected! IP: ");
+    Serial.println(WiFi.localIP());
+
+    mqttClient.setServer(mqttServer, 1883);
   }
 
   void setChipID(uint64_t chipID) {
-    snprintf(this->chipID, sizeof(this->chipID), "%04X%08X",
-      (uint16_t)(chipID >> 32), (uint32_t)chipID);
-
-    snprintf(powerReadingTopic, sizeof(powerReadingTopic), "sensors/%s/power",
-      chipID);
+    snprintf(powerReadingTopic, sizeof(powerReadingTopic), "sensors/%04X/power",
+             (uint16_t)(chipID >> 32));
   }
 
-  void publishEnergyData(const SensorData& data) {
+  void publishEnergyData(const SensorData &data) {
     if (!mqttClient.connected())
       return;
 
     char payload[100];
 
     snprintf(payload, sizeof(payload),
-      "{\"voltage\":%.2f,"
-      "\"current\":%.3f,"
-      "\"power\":%.3f,"
-      "\"energy\":%.3f,"
-      "\"frequency\":%.2f,"
-      "\"pf\":%.3f}",
-      data.voltage,
-      data.current,
-      data.power,
-      data.energy,
-      data.frequency,
-      data.pf);
+             "{\"voltage\":%.2f,"
+             "\"current\":%.3f,"
+             "\"power\":%.3f,"
+             "\"energy\":%.3f,"
+             "\"frequency\":%.2f,"
+             "\"pf\":%.3f}",
+             data.voltage, data.current, data.power, data.energy,
+             data.frequency, data.pf);
+
+    Serial.printf("Topic: %s", powerReadingTopic);
 
     mqttClient.publish(powerReadingTopic, payload);
   }
@@ -90,8 +84,7 @@ public:
 
     if (mqttClient.connect(chipID)) {
       Serial.println("connected");
-    }
-    else {
+    } else {
       Serial.print("failed, rc=");
       Serial.println(mqttClient.state());
     }
