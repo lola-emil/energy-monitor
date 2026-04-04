@@ -33,7 +33,7 @@ func (h *DeviceHandler) AddDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := h.deviceRepo.DeviceExists(body.DeviceSerial, body.ActivationCode)
+	exists, err := h.deviceRepo.DeviceExists(body.DeviceCode)
 
 	if err != nil {
 		log.Println("Exists check", err.Error())

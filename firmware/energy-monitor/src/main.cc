@@ -13,6 +13,7 @@ PZEM004Tv30 pzem(Serial2, RX2, TX2);
 #else
 PZEM004Tv30 pzem(Serial2);
 #endif
+
 EnergySensor sensor(pzem);
 
 constexpr uint16_t SCREEN_WIDTH = 128;
@@ -29,7 +30,7 @@ static unsigned long lastReadMillis = 0;
 // LED CONFIG
 static unsigned long ledOnMillis = 0;
 constexpr unsigned long LED_DURATION = 100;
-constexpr uint8_t GREEN_LIGHT = 32;
+constexpr uint8_t GREEN_LIGHT = 2; // 32
 constexpr uint8_t YELLOW_LIGHT = 33;
 
 // PUSH BUTTON CCONFIG
@@ -83,8 +84,8 @@ void loop() {
   if (millis() - ledOnMillis >= LED_DURATION) {
     digitalWrite(GREEN_LIGHT, LOW);
   }
-  // Run kada 2 secs
-  if (millis() - lastReadMillis >= 2000) {
+  // Run kada 1 sec
+  if (millis() - lastReadMillis >= 1000) {
     lastReadMillis = millis();
     if (!sensor.isSensorDataValid()) {
       return;

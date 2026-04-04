@@ -16,11 +16,11 @@ func NewDeviceRepo(db *sqlx.DB) *DeviceRepo {
 	}
 }
 
-func (r *DeviceRepo) DeviceExists(deviceSerial string, activationCode string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM devices WHERE device_serial=$1 OR activation_code=$2)`
+func (r *DeviceRepo) DeviceExists(deviceSerial string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM devices WHERE device_serial=$1)`
 
 	var exists bool
-	err := r.db.Get(&exists, query, deviceSerial, activationCode)
+	err := r.db.Get(&exists, query, deviceSerial)
 	return exists, err
 }
 
@@ -50,20 +50,15 @@ func (r *DeviceRepo) GetDevices(ctx context.Context) ([]Device, error) {
 func (r *DeviceRepo) SaveDevice(ctx context.Context, record DeviceRequest) (int64, error) {
 	query := `
 		INSERT INTO devices (
-			device_name,
-			device_serial,
-			activation_code
+			device_code,
 		) VALUES (
 			$1,
-			$2,
-			$3 
 		)
 		RETURNING id
 	`
 	var id int64
 	err := r.db.QueryRowContext(ctx, query,
-		record.DeviceName,
-		record.DeviceSerial,
+		record.DeviceCode,
 		record.ActivationCode,
 	).Scan(&id)
 
@@ -79,18 +74,15 @@ func (r *DeviceRepo) UpdateDeviceById(ctx context.Context, id int64, data Device
 	query := `
 		UPDATE devices
 		SET
-			device_name = $1,
-			device_serial = $2,
-			activation_code = $3
+			device_serial = $1,
 		WHERE
-			id = $4
+			id = $2
 		RETURNING id
 	`
 
 	result, err := r.db.ExecContext(ctx,
 		query,
-		data.DeviceName,
-		data.DeviceSerial,
+		data.DeviceCode,
 		data.ActivationCode,
 	)
 
@@ -111,27 +103,4 @@ func (r *DeviceRepo) DeleteDeviceById(ctx context.Context, id int64) (int64, err
 	}
 
 	return result.RowsAffected()
-}
-
-func (r *DeviceRepo) GetDeviceClaimById(id int64) (*DeviceClaim, error) {
-	query := "SELECT * FROM device_claims WHERE id = $1"
-
-	var device DeviceClaim
-	if err := r.db.Get(&device, query, id); err != nil {
-		return nil, err
-	}
-
-	return &device, nil
-}
-
-func (r *DeviceRepo) GetDeviceClaims(ctx context.Context, deviceId int64) ([]DeviceClaim, error) {
-	query := "SELECT * FROM device_claims "
-
-	var devices []DeviceClaim
-
-	if err := r.db.SelectContext(ctx, &devices, query); err != nil {
-		return []DeviceClaim{}, err
-	}
-
-	return devices, nil
 }

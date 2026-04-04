@@ -45,17 +45,11 @@ func (r *UserRepo) GetUsers(ctx context.Context) ([]User, error) {
 func (r *UserRepo) SaveUser(ctx context.Context, record CreateUserRequest) (int64, error) {
 	query := `
 		INSERT INTO users (
-			firstname,
-			lastname,
-			email,
+			username,
 			password,
-			user_role
 		) VALUES (
 			$1,
-			$2,
-			$3,
-			$4,
-			$5
+			$2
 		)
 
 		RETURNING id
@@ -64,9 +58,7 @@ func (r *UserRepo) SaveUser(ctx context.Context, record CreateUserRequest) (int6
 	// fmt.Printf("%+v\n", record)
 	var id int64
 	err := r.db.QueryRowContext(ctx, query,
-		record.Firstname,
-		record.Lastname,
-		record.Email,
+		record.Username,
 		record.Password,
 		record.Role,
 	).Scan(&id)
@@ -95,9 +87,9 @@ func (r *UserRepo) UpdateUserById(ctx context.Context, id int64, data UpdateUser
 		argPos++
 	}
 
-	if data.Email != nil {
+	if data.Username != nil {
 		setClauses = append(setClauses, fmt.Sprintf("email = $%d", argPos))
-		args = append(args, data.Email)
+		args = append(args, data.Username)
 		argPos++
 	}
 

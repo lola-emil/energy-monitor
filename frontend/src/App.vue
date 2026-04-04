@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { RouterView, useRoute } from 'vue-router';
-import Sidebar from './components/Sidebar.vue';
-import { onMounted } from 'vue';
+import { RouterView } from 'vue-router';
+import { useDark } from "@vueuse/core"
 
-
+useDark();
 </script>
 
 <template>
         <RouterView />
 </template>
-
-<style scoped></style>

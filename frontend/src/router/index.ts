@@ -1,10 +1,7 @@
-import WSTestView from '@/views/ WSTestView.vue'
+import { useAuthStore } from '@/stores/auth'
 import AnalyticsView from '@/views/AnalyticsView.vue'
-import CostMonitoringView from '@/views/CostMonitoringView.vue'
 import DeviceAnalytics from '@/views/DeviceAnalytics.vue'
-import DeviceListView from '@/views/DeviceListView.vue'
 import LoginView from '@/views/LoginView.vue'
-import SettingsView from '@/views/SettingsView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -12,40 +9,60 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      component: AnalyticsView
-    },
-    {
-      path: "/login",
-      component: LoginView
-    },
-    {
-      path: "/devices",
-      component: DeviceListView,
+      component: () => import("@/layout/MainLayout.vue"),
+      meta: {
+        requiresAuth: true
+      },
       children: [
         {
           path: "",
-          component: DeviceAnalytics
+          component: AnalyticsView
         },
         {
-          path: ":deviceId",
-          component: DeviceAnalytics
-        }
+          path: "devices",
+          children: [
+            {
+              path: "",
+              component: DeviceAnalytics
+            },
+            {
+              path: ":id",
+              component: DeviceAnalytics
+            }
+          ]
+        },
       ]
     },
     {
-      path: "/ws-test",
-      component: WSTestView
-    },
-    {
-      path: "/cost-monitor",
-      component: CostMonitoringView
+      path: "/auth",
+      component: () => import("@/layout/AuthLayout.vue"),
+      meta: {
+        requiresGuest: true
+      },
+      children: [
+        {
+          path: "login",
+          component: LoginView
+        }
+      ]
     },
 
-    {
-      path: "/settings",
-      component: SettingsView
-    },
   ],
 })
+
+
+router.beforeEach((to, _from, next) => {
+  const auth = useAuthStore()
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return next('/auth/login')
+  }
+  if (to.meta.requiresGuest && auth.isAuthenticated) {
+    return next('/')
+  }
+
+  next()
+})
+
 
 export default router

@@ -17,39 +17,33 @@ func NewAuthRepo(db *sqlx.DB) *AuthRepo {
 	}
 }
 
-func (r *AuthRepo) GetUserByEmail(email string) (user.User, error) {
-	query := "SELECT * FROM users WHERE email = $1"
+func (r *AuthRepo) GetUserByUsername(username string) (user.User, error) {
+	query := "SELECT * FROM users WHERE username = $1"
 
 	var result user.User
-	if err := r.db.Get(&result, query, email); err != nil {
+	if err := r.db.Get(&result, query, username); err != nil {
 		return user.User{}, err
 	}
 
 	return result, nil
 }
 
-func (r *AuthRepo) EmailExists(email string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)`
+func (r *AuthRepo) UserExists(username string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM users WHERE username=$1)`
 
 	var exists bool
-	err := r.db.Get(&exists, query, email)
+	err := r.db.Get(&exists, query, username)
 	return exists, err
 }
 
 func (r *AuthRepo) SaveUser(ctx context.Context, record CreateUserRequest) (int64, error) {
 	query := `
 		INSERT INTO users (
-			firstname,
-			lastname,
-			email,
-			password,
-			user_role
+			username,
+			password
 		) VALUES (
 			$1,
-			$2,
-			$3,
-			$4,
-			$5
+			$2
 		)
 
 		RETURNING id
@@ -57,11 +51,8 @@ func (r *AuthRepo) SaveUser(ctx context.Context, record CreateUserRequest) (int6
 
 	var id int64
 	err := r.db.QueryRowContext(ctx, query,
-		record.Firstname,
-		record.Lastname,
-		record.Email,
+		record.Username,
 		record.Password,
-		record.Role,
 	).Scan(&id)
 
 	if err != nil {

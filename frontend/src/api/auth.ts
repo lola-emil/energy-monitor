@@ -2,7 +2,7 @@ import { axiosInstance } from "./axios";
 
 
 interface SignInForm {
-    email: string
+    username: string
     password: string
 };
 
