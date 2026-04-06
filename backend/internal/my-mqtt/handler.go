@@ -77,12 +77,14 @@ func (th *TopicHandler) RegisterDevice(c mqtt.Client, m mqtt.Message) {
 		log.Println("publish error:", token.Error())
 		return
 	}
+
 	log.Printf("Device %s successfully registered with id %d", data.DeviceCode, id)
 }
 
 func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 	topic := m.Topic()
 	parts := strings.Split(topic, "/")
+
 	if len(parts) < 3 {
 		log.Println("invalid topic:", topic)
 		return
@@ -114,21 +116,6 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 
 	log.Println(sensorData)
 
-	// VERIFY ANG TOKEN
-	// claims, err := jwtutil.VerifyToken(sensorData.Token)
-
-	// if err != nil {
-	// 	resp := map[string]string{
-	// 		"message": "Unauthorized",
-	// 	}
-
-	// 	data, _ := json.Marshal(resp)
-	// 	c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
-	// 	return
-	// }
-
-	// // SAVE ANG DATA SA DB
-	// if v, ok := claims["device_id"].(float64); ok {
 	log.Println("Saving sensor data...", deviceID)
 	body := EnergyReadingBody{
 		DeviceId: deviceID,
@@ -150,9 +137,6 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 		c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
 		return
 	}
-	// }
-
-	// log.Println("MQTT:", payload)
 
 	th.wsHub.Broadcast <- []byte(payload)
 }
