@@ -39,11 +39,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authRepo.GetUserByEmail(body.Email)
+	user, err := h.authRepo.GetUserByUsername(body.Username)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Invalid Email", http.StatusBadRequest)
+			http.Error(w, "Invalid User", http.StatusBadRequest)
 		} else {
 			http.Error(w, fmt.Sprintf("SQL: %s", err.Error()), http.StatusInternalServerError)
 		}
@@ -123,7 +123,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := h.authRepo.EmailExists(body.Email)
+	exists, err := h.authRepo.UserExists(body.Username)
 
 	if err != nil {
 		log.Println(err.Error())

@@ -2,7 +2,9 @@ package server
 
 import (
 	"backend/internal/api/auth"
+	"backend/internal/api/dashboard"
 	"backend/internal/api/device"
+	deviceclaim "backend/internal/api/device-claim"
 	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
 	mymiddleware "backend/internal/my-middleware"
@@ -75,11 +77,14 @@ func (s *Server) RegisterRoutes(wsHub *ws.WSHub) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(mymiddleware.AuthenticationMiddleware)
-		r.Use(mymiddleware.Authorize)
 
 		r.Mount("/users", user.RegisterModule(s.db.GetInstance()))
 		r.Mount("/devices", device.RegisterModule(s.db.GetInstance()))
+		r.Mount("/device-claims", deviceclaim.RegisterModule(s.db.GetInstance()))
 		r.Mount("/energy-readings", energyreading.RegisterModule(s.db.GetInstance()))
+
+		r.Mount("/dashboard", dashboard.RegisterModule(s.db.GetInstance()))
+
 	})
 
 	r.Get("/health", s.healthHandler)

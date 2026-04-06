@@ -1,26 +1,37 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
-import { signIn } from "@/api/auth"
+import { useAuthStore } from '@/stores/auth';
+import { useRouter } from 'vue-router';
+import {
+    Field, FieldGroup,
+    FieldLabel,
+    FieldSet
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import Button from '@/components/ui/button/Button.vue';
 
+
+const auth = useAuthStore()
+const router = useRouter()
 
 const form = reactive({
-    email: "",
+    username: "",
     password: ""
 });
 
 const isLoading = ref(false);
 
-const onSubmit = () => {
-    isLoading.value = true;
-    signIn(form).then(res => {
-        console.log(res);
+const onSubmit = async () => {
+    await auth.login({
+        username: form.username,
+        password: form.password
     })
-    .catch(err => {
-        console.log(err);
-    }).finally(() => {
-        isLoading.value = false;
-    });
+
+    if (auth.isAuthenticated) {
+        router.push('/')
+    }
 }
+
 </script>
 
 <template>
@@ -28,25 +39,33 @@ const onSubmit = () => {
         <form class="w-xs" @submit.prevent="onSubmit">
             <p class="text-lg font-semibold">Sign In</p>
             <br>
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">Email</legend>
-                <input type="text" class="input" v-model="form.email"/>
-                <p class="label"></p>
-            </fieldset>
+            <FieldSet>
+                <FieldGroup>
+                    <Field>
+                        <FieldLabel for="username">
+                            Username
+                        </FieldLabel>
+                        <Input id="username" v-model="form.username" type="text" placeholder="" />
 
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">Password</legend>
-                <input type="password" class="input" v-model="form.password"/>
-                <p class="label"></p>
-            </fieldset>
+                    </Field>
+                    <Field>
+                        <FieldLabel for="password">
+                            Password
+                        </FieldLabel>
 
-            <button class="btn btn-primary w-full" :disabled="isLoading">
+                        <Input id="password" type="password" v-model="form.password" placeholder="********" />
+                    </Field>
+                </FieldGroup>
+            </FieldSet>
+
+            <Button class="w-full mt-5">
                 <span v-if="isLoading">
                     <span class="loading loading-spinner loading-xs"></span>
                     Please wait..
                 </span>
                 <span v-else>Sign In</span>
-            </button>
+            </Button>
         </form>
     </main>
+
 </template>

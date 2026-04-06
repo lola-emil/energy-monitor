@@ -34,6 +34,7 @@ func StartMQTT(wsHub *ws.WSHub, db *sqlx.DB) mqtt.Client {
 	repo := NewRepository(db)
 	topicHandler := NewTopicHandler(wsHub, repo)
 
+	token = client.Subscribe("device/register", 0, topicHandler.RegisterDevice)
 	token = client.Subscribe("device/+/auth", 0, topicHandler.AuthenticateDevice)
 	token = client.Subscribe("device/+/sensor", 0, topicHandler.SubEnergyReadinTopic)
 
@@ -42,8 +43,6 @@ func StartMQTT(wsHub *ws.WSHub, db *sqlx.DB) mqtt.Client {
 		log.Println("Subscribe error:", token.Error())
 		return client
 	}
-
-	log.Println("Subscribed to test/topic")
 
 	return client
 }

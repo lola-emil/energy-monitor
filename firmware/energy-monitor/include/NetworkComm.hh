@@ -1,12 +1,12 @@
 #pragma once
 
-#include <PubSubClient.h>
-#include <WiFi.h>
-#include <WiFiManager.h>
 #include <ArduinoJson.h>
+#include <PubSubClient.h>
 
 #include "EnergySensor.hh"
 
+String jwtToken = "";
+bool isAuthenticated = false;
 class NetworkComm {
 
 private:
@@ -17,16 +17,15 @@ private:
   unsigned long lastMqttAttempt = 0;
   const unsigned long mqttRetryInterval = 5000; // 5 seconds
 
-  PubSubClient& mqttClient;
-  WiFiManager& wifiManager;
+  PubSubClient &mqttClient;
+  WiFiManager &wifiManager;
 
   char powerReadingTopic[50];
   char chipID[17];
 
 public:
-  NetworkComm(PubSubClient& m, WiFiManager& wm)
-    : mqttClient(m), wifiManager(wm) {
-  }
+  NetworkComm(PubSubClient &m, WiFiManager &wm)
+      : mqttClient(m), wifiManager(wm) {}
 
   void initConnection() {
     if (!wifiManager.autoConnect("ESP32_AP")) {
@@ -44,10 +43,10 @@ public:
 
   void setChipID(uint64_t chipID) {
     snprintf(powerReadingTopic, sizeof(powerReadingTopic), "device/%04X/sensor",
-      (uint16_t)(chipID >> 32));
+             (uint16_t)(chipID >> 32));
   }
 
-  void publishEnergyData(const SensorData& data) {
+  void publishEnergyData(const SensorData &data) {
     if (!mqttClient.connected())
       return;
 
@@ -81,8 +80,7 @@ public:
 
     if (mqttClient.connect(chipID)) {
       Serial.println("connected");
-    }
-    else {
+    } else {
       Serial.print("failed, rc=");
       Serial.println(mqttClient.state());
     }

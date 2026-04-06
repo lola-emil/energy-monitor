@@ -1,6 +1,8 @@
 package mymqtt
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+)
 
 type Repository struct {
 	db *sqlx.DB
@@ -25,11 +27,11 @@ func (r *Repository) GetDeviceByIdAndSerial(id int64, serial string) (*Device, e
 
 func (r *Repository) SaveDeviceReadings(data EnergyReadingBody) (int64, error) {
 	query := `
-	INSERT INTO energy_readings 
+	INSERT INTO readings_raw 
 	(device_id, voltage, current, power_kwh)
 	VALUES
 	($1, $2, $3, $4)
-	RETURNING id
+	RETURNING device_id
 	`
 
 	var id int64
@@ -44,4 +46,33 @@ func (r *Repository) SaveDeviceReadings(data EnergyReadingBody) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func (r *Repository) SaveDevice(data DeviceRegister) (int64, error) {
+	query := `
+		INSERT INTO devices (
+			device_code
+		) VALUES (
+			$1
+		)
+		RETURNING id
+	`
+	var id int64
+	err := r.db.QueryRow(query,
+		data.DeviceCode,
+	).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func (r *Repository) DeviceExists(deviceCode string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM devices WHERE device_code=$1)`
+
+	var exists bool
+	err := r.db.Get(&exists, query, deviceCode)
+	return exists, err
 }

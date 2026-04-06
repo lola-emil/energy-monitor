@@ -2,8 +2,14 @@
 import useEchart from '@/composables/useECharts';
 import type { EChartsOption } from 'echarts';
 import { onMounted, useTemplateRef } from 'vue';
+import {
+    Card, CardContent, CardTitle
+} from '@/components/ui/card';
+import { useRoute } from 'vue-router';
+import { MonitorSmartphone } from "lucide-vue-next";
 
-import { RotateCw, Zap, PhilippinePeso } from "lucide-vue-next";
+
+const route = useRoute();
 
 const lineChartEl = useTemplateRef<HTMLDivElement>("line-chart");
 const lineChartOpt: EChartsOption = {
@@ -121,89 +127,61 @@ const lineChart = useEchart(lineChartEl);
 
 onMounted(() => {
     lineChart.setOptions(lineChartOpt);
+    console.log(route.params.id);
 })
+
 </script>
 
 <template>
+    <main class="px-5 mt-3">
+        <Card>
+            <CardContent>
+                <div class="w-full flex">
+                    <div class="flex gap-5">
+                        <div class="p-3 bg-primary rounded-lg text-white w-max">
+                            <MonitorSmartphone />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <h1 class="text-xl font-semibold tracking-tight">PC</h1>
+                            <p class="text-sm font-medium leading-none">ID: RL901</p>
+                        </div>
+                    </div>
 
-    <!-- Stats Row -->
-
-    <div class="grid grid-cols-3 gap-12">
-        <div class="card bg-base-100">
-            <div class="card-body">
-                <div class="p-2 rounded-lg bg-primary text-primary-content w-max">
-                    <PhilippinePeso />
+                    <div></div>
                 </div>
-                <div>
-                    <p class="font-semibold">Estimated Bill</p>
-                    <p class="text-lg">864.90</p>
-                </div>
-            </div>
-        </div>
-        <div class="card bg-base-100">
-            <div class="card-body">
-                <div class="p-2 rounded-lg bg-primary text-primary-content w-max">
-                    <Zap />
-                </div>
-                <div>
-                    <p class="font-semibold">Power Draw</p>
-                    <p class="text-lg">54 kWh</p>
-                </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
 
-        <div class="card bg-base-100">
-            <div class="card-body">
-                <div class="p-2 rounded-lg bg-primary text-primary-content w-max">
-                    <Zap />
-                </div>
-                <div>
-                    <p class="font-semibold">Power Consumption</p>
-                    <p class="text-lg">54 kWh</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <br>
-    <!-- Chart Placeholder -->
-    <div class="card bg-base-100 shadow p-6 h-125 mb-8 flex items-center justify-center">
-        <div ref="line-chart" class="h-full w-full flex-1">
-        </div>
-    </div>
+        <section class="mt-5 grid grid-cols-2 gap-5 h-[80vh]">
+            <Card>
+                <CardContent>
+                    <CardTitle class="">
+                        Energy Usage (Monthly)
+                    </CardTitle>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardContent>
+                    <CardTitle class="">
+                        Current and Power
+                    </CardTitle>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardContent></CardContent>
+            </Card>
+
+            <Card>
+                <CardContent>
+                    <CardTitle class="">
+                        Voltage
+                    </CardTitle>
+                </CardContent>
+            </Card>
 
 
-    <!-- Most Used Section -->
-    <!-- <div class="card bg-base-100 shadow p-6">
-
-        <div class="flex justify-between mb-6">
-            <h3 class="font-semibold">Most Used</h3>
-
-            <select class="select select-bordered select-sm">
-                <option>All Time</option>
-            </select>
-        </div>
-
-        <div class="space-y-4">
-
-            <div class="flex justify-between items-center">
-                <span>Figma</span>
-                <span>24%</span>
-                <span>20:05:42</span>
-            </div>
-
-            <div class="flex justify-between items-center">
-                <span>Photoshop</span>
-                <span>12.5%</span>
-                <span>12:48:56</span>
-            </div>
-
-            <div class="flex justify-between items-center">
-                <span>Chrome</span>
-                <span>8.2%</span>
-                <span>48:00:64</span>
-            </div>
-
-        </div>
-
-    </div> -->
+        </section>
+    </main>
 </template>
