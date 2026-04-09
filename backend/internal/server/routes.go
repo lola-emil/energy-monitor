@@ -8,7 +8,7 @@ import (
 	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
 	mymiddleware "backend/internal/my-middleware"
-	"backend/internal/ws"
+	"backend/internal/sse"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -58,7 +58,7 @@ func SPAHandler(staticPath string) http.HandlerFunc {
 	})
 }
 
-func (s *Server) RegisterRoutes(wsHub *ws.WSHub) http.Handler {
+func (s *Server) RegisterRoutes(sseBroker *sse.SSEBroker) http.Handler {
 	viteURL, _ := url.Parse("http://localhost:5173")
 	viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 
@@ -89,8 +89,8 @@ func (s *Server) RegisterRoutes(wsHub *ws.WSHub) http.Handler {
 
 	r.Get("/health", s.healthHandler)
 
-	// HANDLE WEBSOCKET CONNECTIONS
-	r.Get("/ws", wsHub.HandleWSConnections)
+	// SSE route
+	r.Get("/events", sseBroker.ServeHTTP)
 
 	// SERVE FRONTEND
 	if os.Getenv("ENV") == "dev" {

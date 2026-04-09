@@ -24,12 +24,12 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 		token := parts[1]
 
 		claims, err := jwtutil.VerifyToken(token)
+
 		if err != nil {
 			http.Error(w, "Invalid Token", http.StatusUnauthorized)
 			return
 		}
 
-		// Optional: store claims in context
 		ctx := context.WithValue(r.Context(), "claims", claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

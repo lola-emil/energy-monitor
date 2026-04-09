@@ -6,7 +6,7 @@ type SSEBroker struct {
 	clients    map[SSEClient]bool
 	register   chan SSEClient
 	unregister chan SSEClient
-	broadcast  chan []byte
+	Broadcast  chan []byte
 }
 
 func NewSSEBroker() *SSEBroker {
@@ -14,7 +14,7 @@ func NewSSEBroker() *SSEBroker {
 		clients:    make(map[SSEClient]bool),
 		register:   make(chan SSEClient),
 		unregister: make(chan SSEClient),
-		broadcast:  make(chan []byte),
+		Broadcast:  make(chan []byte),
 	}
 }
 
@@ -28,7 +28,7 @@ func (b *SSEBroker) Run() {
 			delete(b.clients, client)
 			close(client)
 
-		case msg := <-b.broadcast:
+		case msg := <-b.Broadcast:
 			for client := range b.clients {
 				select {
 				case client <- msg:

@@ -16,14 +16,6 @@ func NewEnergyReadingHandler(energyReadingRepo *EnergyReadingRepo) *EnergyReadin
 	}
 }
 
-func (h *EnergyReadingHandler) TestFunction(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{
-		"message": "hello from energy-reading module",
-	}
-
-	json.NewEncoder(w).Encode(response)
-}
-
 func (h *EnergyReadingHandler) GetEnergyReadings(w http.ResponseWriter, r *http.Request) {
 	readings, err := h.energyReadingRepo.GetEnergyReadings(r.Context())
 

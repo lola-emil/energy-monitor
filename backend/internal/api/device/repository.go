@@ -35,6 +35,17 @@ func (r *DeviceRepo) GetDeviceById(id int64) (*Device, error) {
 	return &device, nil
 }
 
+func (r *DeviceRepo) GetDeviceByCode(deviceCode string) (*Device, error) {
+	query := "SELECT * FROM devices WHERE device_code = $1"
+
+	var device Device
+	if err := r.db.Get(&device, query, deviceCode); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
+}
+
 func (r *DeviceRepo) GetDevices(ctx context.Context) ([]Device, error) {
 	query := "SELECT * FROM devices "
 

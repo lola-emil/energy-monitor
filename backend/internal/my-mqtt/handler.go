@@ -2,7 +2,7 @@ package mymqtt
 
 import (
 	jwtutil "backend/internal/pkg/jwt-util"
-	"backend/internal/ws"
+	"backend/internal/sse"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,14 +15,13 @@ import (
 )
 
 type TopicHandler struct {
-	wsHub *ws.WSHub
-	repo  *Repository
+	sseBroker *sse.SSEBroker
+	repo      *Repository
 }
 
-func NewTopicHandler(wsHub *ws.WSHub, repo *Repository) *TopicHandler {
+func NewTopicHandler(sseBroker *sse.SSEBroker, repo *Repository) *TopicHandler {
 	return &TopicHandler{
-		wsHub: wsHub,
-		repo:  repo,
+		repo: repo,
 	}
 }
 
@@ -112,23 +111,6 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 		return
 	}
 
-	log.Println(sensorData)
-
-	// VERIFY ANG TOKEN
-	// claims, err := jwtutil.VerifyToken(sensorData.Token)
-
-	// if err != nil {
-	// 	resp := map[string]string{
-	// 		"message": "Unauthorized",
-	// 	}
-
-	// 	data, _ := json.Marshal(resp)
-	// 	c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
-	// 	return
-	// }
-
-	// // SAVE ANG DATA SA DB
-	// if v, ok := claims["device_id"].(float64); ok {
 	log.Println("Saving sensor data...", deviceID)
 	body := EnergyReadingBody{
 		DeviceId: deviceID,
@@ -140,21 +122,10 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 	log.Println("Reading: ", reading)
 
 	if err != nil {
-		resp := map[string]string{
-			"message": "SHIT",
-		}
-
 		log.Println(err.Error())
-
-		data, _ := json.Marshal(resp)
-		c.Publish(fmt.Sprintf("device/%d/sensor/response", deviceID), 0, false, data).Wait()
 		return
 	}
-	// }
-
-	// log.Println("MQTT:", payload)
-
-	th.wsHub.Broadcast <- []byte(payload)
+	th.sseBroker.Broadcast <- []byte(payload)
 }
 
 func (th *TopicHandler) AuthenticateDevice(c mqtt.Client, m mqtt.Message) {

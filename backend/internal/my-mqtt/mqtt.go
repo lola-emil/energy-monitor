@@ -1,14 +1,14 @@
 package mymqtt
 
 import (
-	"backend/internal/ws"
+	"backend/internal/sse"
 	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/jmoiron/sqlx"
 )
 
-func StartMQTT(wsHub *ws.WSHub, db *sqlx.DB) mqtt.Client {
+func StartMQTT(sseBroker *sse.SSEBroker, db *sqlx.DB) mqtt.Client {
 
 	opts := mqtt.NewClientOptions().
 		AddBroker("tcp://127.0.0.1:1883").
@@ -32,7 +32,7 @@ func StartMQTT(wsHub *ws.WSHub, db *sqlx.DB) mqtt.Client {
 
 	// DEFINE ANG MGA HANDLER
 	repo := NewRepository(db)
-	topicHandler := NewTopicHandler(wsHub, repo)
+	topicHandler := NewTopicHandler(sseBroker, repo)
 
 	token = client.Subscribe("device/register", 0, topicHandler.RegisterDevice)
 	token = client.Subscribe("device/+/auth", 0, topicHandler.AuthenticateDevice)

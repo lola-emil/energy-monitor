@@ -15,6 +15,7 @@ func NewDeviceClaimRoute(handler *DeviceClaimHandler) *DeviceClaimRoute {
 func (r *DeviceClaimRoute) RegisterRoutes() *chi.Mux {
 	mux := chi.NewRouter()
 
+	mux.Post("/", r.handler.ClaimDevice)
 	mux.Get("/{device-id}", r.handler.GetDeviceClaims)
 	mux.Get("/{claim-id}", r.handler.GetDeviceClaim)
 

@@ -11,6 +11,7 @@ import (
 
 	"backend/internal/database"
 	mymqtt "backend/internal/my-mqtt"
+	"backend/internal/sse"
 	"backend/internal/ws"
 )
 
@@ -29,12 +30,15 @@ func NewServer() *http.Server {
 	}
 
 	wsHub := ws.NewHub()
+	sseBroker := sse.NewSSEBroker()
+
+	go sseBroker.Run()
 	go wsHub.Run()
 
-	mymqtt.StartMQTT(wsHub, NewServer.db.GetInstance())
+	mymqtt.StartMQTT(sseBroker, NewServer.db.GetInstance())
 	// defer mqttClient.Disconnect(250)
 
-	routes := NewServer.RegisterRoutes(wsHub)
+	routes := NewServer.RegisterRoutes(sseBroker)
 
 	// Declare Server config
 	server := &http.Server{

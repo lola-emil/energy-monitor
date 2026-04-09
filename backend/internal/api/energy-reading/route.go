@@ -15,7 +15,5 @@ func NewEnergyReadingRoute(handler *EnergyReadingHandler) *EnergyReadingRoute {
 func (r *EnergyReadingRoute) RegisterRoutes() *chi.Mux {
 	mux := chi.NewRouter()
 
-	mux.Get("/", r.handler.TestFunction)
-
 	return mux
 }

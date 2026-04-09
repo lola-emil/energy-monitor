@@ -6,7 +6,6 @@ import (
 )
 
 func (b *SSEBroker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -19,10 +18,8 @@ func (b *SSEBroker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	client := make(SSEClient)
 
-	// Register client
 	b.register <- client
 
-	// Cleanup on disconnect
 	defer func() {
 		b.unregister <- client
 	}()

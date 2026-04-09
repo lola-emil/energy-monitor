@@ -38,3 +38,40 @@ func (r *DeviceClaimRepo) GetDeviceClaims(ctx context.Context, deviceId int64) (
 
 	return devices, nil
 }
+
+func (r *DeviceClaimRepo) DeviceAlreadyTaken(ctx context.Context, deviceId int64, userId int64) (bool, error) {
+	query := "SELECT EXISTS(SELECT * FROM device_claims WHERE device_id = $1 AND user_id = $2)"
+
+	var exists bool
+	err := r.db.Get(&exists, query, deviceId, userId)
+
+	return exists, err
+}
+
+func (r *DeviceClaimRepo) ClaimDevice(ctx context.Context, claim DeviceClaim) (int64, error) {
+	query := `
+		INSERT INTO device_claims (
+			device_id,
+			user_id,
+			device_name
+		) VALUES (
+			$1, 
+			$2, 
+			$3
+		 )
+
+		 RETURNING id
+	`
+
+	var id int64
+	err := r.db.QueryRowContext(ctx, query,
+		claim.DeviceId,
+		claim.UserId,
+		claim.DeviceName).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
