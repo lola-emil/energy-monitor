@@ -76,12 +76,14 @@ func (th *TopicHandler) RegisterDevice(c mqtt.Client, m mqtt.Message) {
 		log.Println("publish error:", token.Error())
 		return
 	}
+
 	log.Printf("Device %s successfully registered with id %d", data.DeviceCode, id)
 }
 
 func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 	topic := m.Topic()
 	parts := strings.Split(topic, "/")
+
 	if len(parts) < 3 {
 		log.Println("invalid topic:", topic)
 		return
