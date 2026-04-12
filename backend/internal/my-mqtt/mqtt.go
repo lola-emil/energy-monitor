@@ -1,14 +1,14 @@
 package mymqtt
 
 import (
-	"backend/internal/sse"
+	"backend/internal/event"
 	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/jmoiron/sqlx"
 )
 
-func StartMQTT(sseBroker *sse.SSEBroker, db *sqlx.DB) mqtt.Client {
+func StartMQTT(sseBroker *event.Hub, db *sqlx.DB) mqtt.Client {
 
 	opts := mqtt.NewClientOptions().
 		AddBroker("tcp://127.0.0.1:1883").

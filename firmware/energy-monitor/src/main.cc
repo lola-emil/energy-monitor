@@ -34,15 +34,14 @@ void setup() {
 
   Serial2.begin(9600, SERIAL_8N1, RX2, TX2);
 
-  uint64_t macAddress = ESP.getEfuseMac();
-  
-  netc.setChipID(macAddress);
   netc.initConnection();
-
 }
 
 void loop() {
-  netc.connectMQTT();
+  if (!netc.connectMQTT()) {
+    Serial.println("Wala pa ma connect");
+    return;
+  };
 
   if (isLongPressed()) {
     Serial.println("Long press detected! Resetting Wi-Fi...");

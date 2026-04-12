@@ -1,29 +1,3 @@
-<script setup lang="ts">
-import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer } from "lucide-vue-next";
-import { ref } from "vue";
-
-import { Button } from '@/components/ui/button';
-import {
-    Card, CardContent, CardHeader,
-    CardTitle
-} from '@/components/ui/card';
-
-
-function getNowDatetimeLocal() {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
-}
-
-const dateTime = ref(getNowDatetimeLocal());
-
-
-</script>
-
 <template>
 
     <main class="px-5 mt-3">
@@ -127,10 +101,10 @@ const dateTime = ref(getNowDatetimeLocal());
             </div>
         </section>
 
-        <section class="mt-5 min-h-96 grid grid-cols-2 gap-5">
+        <section class="mt-5 min-h-116 grid grid-cols-2 gap-5">
             <Card>
-                <CardHeader class="p-3 px-5">
-                    <CardTitle class="text-lg">
+                <CardHeader>
+                    <CardTitle>
                         Energy Usage (Monthly)
                     </CardTitle>
                 </CardHeader>
@@ -155,3 +129,30 @@ const dateTime = ref(getNowDatetimeLocal());
 
     <br>
 </template>
+
+
+<script setup lang="ts">
+import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer } from "lucide-vue-next";
+import { ref } from "vue";
+
+import { Button } from '@/components/ui/button';
+import {
+    Card, CardContent, CardHeader,
+    CardTitle
+} from '@/components/ui/card';
+
+
+function getNowDatetimeLocal() {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const dateTime = ref(getNowDatetimeLocal());
+
+
+</script>

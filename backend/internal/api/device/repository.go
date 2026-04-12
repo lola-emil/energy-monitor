@@ -58,6 +58,39 @@ func (r *DeviceRepo) GetDevices(ctx context.Context) ([]Device, error) {
 	return devices, nil
 }
 
+func (r *DeviceRepo) GetUserDevices(ctx context.Context, userID int64) ([]DeviceClaimResponse, error) {
+	query := `
+	SELECT dc.*, d.is_active, d.last_active, d.device_code FROM devices AS d
+	JOIN device_claims AS dc ON dc.device_id = d.id
+	WHERE dc.user_id = $1;
+	`
+
+	var devices []DeviceClaimResponse
+
+	if err := r.db.SelectContext(ctx, &devices, query, userID); err != nil {
+		return []DeviceClaimResponse{}, err
+	}
+
+	return devices, nil
+}
+
+func (r *DeviceRepo) GetUserDevice(ctx context.Context, userID int64, deviceID int64) (*DeviceClaimResponse, error) {
+	query := `
+	SELECT dc.*, d.is_active, d.last_active, d.device_code FROM devices AS d
+	JOIN device_claims AS dc ON dc.device_id = d.id
+	WHERE dc.user_id = $1
+	and d.id = $2
+	`
+
+	var device DeviceClaimResponse
+
+	if err := r.db.Get(&device, query, userID, deviceID); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
+}
+
 func (r *DeviceRepo) SaveDevice(ctx context.Context, record DeviceRequest) (int64, error) {
 	query := `
 		INSERT INTO devices (

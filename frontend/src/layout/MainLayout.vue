@@ -1,34 +1,3 @@
-<script setup lang="ts">
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarInset,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-    SidebarRail,
-    SidebarTrigger,
-} from '@/components/ui/sidebar'
-import { RouterView } from 'vue-router';
-import { Home } from "lucide-vue-next"
-import NavUser from '@/components/NavUser.vue';
-
-const data = {
-    user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
-    },
-}
-</script>
-
-
 <template>
 
     <SidebarProvider>
@@ -57,7 +26,7 @@ const data = {
                                 <SidebarMenuButton as-child>
                                     <RouterLink to="/">
                                         <Home />
-                                        <span>Home</span>
+                                        <span>Dashboard</span>
                                     </RouterLink>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -66,15 +35,24 @@ const data = {
                 </SidebarGroup>
 
                 <SidebarGroup>
-                    <SidebarGroupLabel>Analytics per Device</SidebarGroupLabel>
+                    <SidebarGroupLabel>Your Devices</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            <SidebarMenuItem>
+                            <SidebarMenuItem v-for="device in devices">
                                 <SidebarMenuButton as-child>
-                                    <RouterLink to="/">
-                                        <Home />
-                                        <span>All</span>
+                                    <RouterLink :to="'/devices/' + device.device_id">
+                                        <MonitorSmartphone />
+                                        <span>{{ device.device_name }}</span>
                                     </RouterLink>
+
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+
+                            <SidebarMenuItem @click="openDialog">
+                                <SidebarMenuButton>
+                                    <Plus />
+                                    <span>Add New Device</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
@@ -95,6 +73,81 @@ const data = {
             </header>
             <RouterView />
 
+            <AddDeviceModal></AddDeviceModal>
+
         </SidebarInset>
     </SidebarProvider>
 </template>
+
+
+<script setup lang="ts">
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarInset,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarProvider,
+    SidebarRail,
+    SidebarTrigger,
+} from '@/components/ui/sidebar'
+import { RouterView } from 'vue-router';
+import { Home, Plus, MonitorSmartphone } from "lucide-vue-next"
+import NavUser from '@/components/NavUser.vue';
+import { useAPI } from '@/composables/useAPI';
+import { axiosInstance } from '@/api/axios';
+import { useAuthStore } from '@/stores/auth';
+import { onMounted, ref } from 'vue';
+import AddDeviceModal from '@/components/AddDeviceModal.vue';
+import { useModalStore } from '@/stores/modal';
+
+interface Device {
+    Devicecode: string
+    created_at: string
+    device_id: number
+    device_name: string
+    id: number, is_active: boolean
+    last_active: string | null
+    user_id: number
+}
+const devices = ref<Device[]>([]);
+
+const auth = useAuthStore();
+const modal = useModalStore();
+
+const data = {
+    user: {
+        name: "shadcn",
+        email: "m@example.com",
+        avatar: "/avatars/shadcn.jpg",
+    },
+}
+
+
+const fetchDevices = () => {
+    axiosInstance.get<Device[]>("/api/devices", {
+        headers: {
+            "Authorization": `Bearer ${auth.token}`,
+        }
+    }).then(res => {
+        devices.value = res.data;
+    }).catch(err => {
+        console.log(err);
+    })
+}
+
+const openDialog = () => {
+    modal.open();
+}
+
+onMounted(() => {
+    fetchDevices();
+})
+
+</script>

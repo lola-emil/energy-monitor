@@ -92,8 +92,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   60 * 60 * 24 * 14,
 	})
 
-	response := map[string]string{
+	userData := map[string]any{
+		"id":       user.ID,
+		"username": user.Username,
+	}
+
+	response := map[string]any{
 		"token": *token,
+		"user":  userData,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

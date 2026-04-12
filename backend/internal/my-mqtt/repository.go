@@ -1,6 +1,8 @@
 package mymqtt
 
 import (
+	energyreading "backend/internal/api/energy-reading"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -25,7 +27,19 @@ func (r *Repository) GetDeviceByIdAndSerial(id int64, serial string) (*Device, e
 	return &device, nil
 }
 
-func (r *Repository) SaveDeviceReadings(data EnergyReadingBody) (int64, error) {
+func (r *Repository) GetDeviceClaimByDeviceId(deviceID int64) (*DeviceClaim, error) {
+	query := "SELECT * FROM device_claims WHERE device_id = $1"
+	var device DeviceClaim
+
+	if err := r.db.Get(&device, query, deviceID); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
+
+}
+
+func (r *Repository) SaveDeviceReadings(data energyreading.EnergyReadingBody) (int64, error) {
 	query := `
 	INSERT INTO readings_raw 
 	(device_id, voltage, current, power_kwh)
@@ -69,10 +83,13 @@ func (r *Repository) SaveDevice(data DeviceRegister) (int64, error) {
 	return id, nil
 }
 
-func (r *Repository) DeviceExists(deviceCode string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM devices WHERE device_code=$1)`
+func (r *Repository) DeviceExists(deviceCode string) (*Device, error) {
+	query := "SELECT * FROM devices WHERE device_code = $1"
 
-	var exists bool
-	err := r.db.Get(&exists, query, deviceCode)
-	return exists, err
+	var device Device
+	if err := r.db.Get(&device, query, deviceCode); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
 }

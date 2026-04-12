@@ -14,17 +14,9 @@ type EnergyReading struct {
 	PowerKwh decimal.Decimal `db:"power_kwh"`
 }
 
-type EnergyReadingBody struct {
-	DeviceId int64
-
-	Voltage  decimal.Decimal
-	Current  decimal.Decimal
-	PowerKwh decimal.Decimal
-}
-
 type Device struct {
 	ID         int64  `db:"id" json:"id"`
-	DeviceName string `db:"device_name" json:"device_name"`
+	DeviceCode string `db:"device_code" json:"device_code"`
 	// UserId       int64  `db:"user_id" json:"user_id"`
 	IsActive   bool       `db:"is_active" json:"is_active"`
 	LastActive *time.Time `db:"last_active" json:"last_active"`
@@ -34,19 +26,28 @@ type Device struct {
 }
 
 type SensorData struct {
-	Token    string          `json:"token"`
-	Voltage  decimal.Decimal `json:"voltage"`
-	Current  decimal.Decimal `json:"current"`
-	PowerKwh decimal.Decimal `json:"power"`
+	Voltage   decimal.Decimal `json:"v"`
+	Current   decimal.Decimal `json:"A"`
+	PowerKwh  decimal.Decimal `json:"e"`
+	PowerDraw decimal.Decimal `json:"w"`
 }
 
 type DeviceRegister struct {
-	DeviceCode       string `json:"device_code"`
-	RegistrationCode string `json:"register_code"`
+	DeviceCode       string `json:"s"`
+	RegistrationCode string `json:"c"`
 }
 
 type DeviceAuth struct {
 	DeviceId       int64  `json:"id"`
 	DeviceSerial   string `json:"serial"`
 	ActivationCode string `json:"act_code"`
+}
+
+type DeviceClaim struct {
+	ID         int64  `db:"id" json:"id"`
+	DeviceId   int64  `db:"device_id" json:"device_id"`
+	UserId     int64  `db:"user_id" json:"user_id"`
+	DeviceName string `db:"device_name" json:"device_name"`
+
+	CreatedAt *time.Time `db:"created_at" json:"created_at"`
 }

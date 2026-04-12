@@ -22,3 +22,16 @@ type DeviceRequest struct {
 	DeviceCode     string `json:"device_code" validate:"required,max=16"`
 	ActivationCode string `json:"activation_code" validate:"required,max=50"`
 }
+
+type DeviceClaimResponse struct {
+	DeviceClaimId int64  `db:"id" json:"id"`
+	DeviceId      int64  `db:"device_id" json:"device_id"`
+	DeviceCode    string `db:"device_code" json:"device_code"`
+	UserId        int64  `db:"user_id" json:"user_id"`
+	DeviceName    string `db:"device_name" json:"device_name"`
+
+	IsActive   bool       `db:"is_active" json:"is_active"`
+	LastActive *time.Time `db:"last_active" json:"last_active"`
+
+	CreatedAt *time.Time `db:"created_at" json:"created_at"`
+}

@@ -1,8 +1,8 @@
-import { useAuthStore } from '@/stores/auth'
-import AnalyticsView from '@/views/AnalyticsView.vue'
-import DeviceAnalytics from '@/views/DeviceAnalytics.vue'
-import LoginView from '@/views/LoginView.vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth';
+import { createRouter, createWebHistory } from 'vue-router';
+import AnalyticsView from '@/views/dashboard/AnalyticsView.vue';
+import DeviceAnalytics from '@/views/device-analytics/DeviceAnalytics.vue';
+import LoginView from '@/views/auth/LoginView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,21 +48,21 @@ const router = createRouter({
     },
 
   ],
-})
+});
 
 
 router.beforeEach((to, _from, next) => {
-  const auth = useAuthStore()
+  const auth = useAuthStore();
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return next('/auth/login')
+    return next('/auth/login');
   }
   if (to.meta.requiresGuest && auth.isAuthenticated) {
-    return next('/')
+    return next('/');
   }
 
-  next()
-})
+  next();
+});
 
 
-export default router
+export default router;

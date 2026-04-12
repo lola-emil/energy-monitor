@@ -10,9 +10,8 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	"backend/internal/database"
+	"backend/internal/event"
 	mymqtt "backend/internal/my-mqtt"
-	"backend/internal/sse"
-	"backend/internal/ws"
 )
 
 type Server struct {
@@ -29,11 +28,8 @@ func NewServer() *http.Server {
 		db: database.New(),
 	}
 
-	wsHub := ws.NewHub()
-	sseBroker := sse.NewSSEBroker()
-
+	sseBroker := event.NewHub()
 	go sseBroker.Run()
-	go wsHub.Run()
 
 	mymqtt.StartMQTT(sseBroker, NewServer.db.GetInstance())
 	// defer mqttClient.Disconnect(250)

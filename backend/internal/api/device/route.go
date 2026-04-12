@@ -16,7 +16,8 @@ func (r *DeviceRoute) RegisterRoutes() *chi.Mux {
 	mux := chi.NewRouter()
 
 	mux.Post("/", r.handler.AddDevice)
-	mux.Get("/", r.handler.GetDevices)
+	mux.Get("/", r.handler.GetUserDevices)
+	mux.Get("/{id}", r.handler.GetUserDevice)
 
 	return mux
 }

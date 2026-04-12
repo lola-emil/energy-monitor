@@ -5,7 +5,7 @@
 // LED CONFIG
 constexpr unsigned long LED_DURATION = 100;
 
-constexpr uint8_t GREEN_LIGHT = 32;
+constexpr uint8_t GREEN_LIGHT = 2;
 constexpr uint8_t YELLOW_LIGHT = 33;
 
 void initLED() {
@@ -14,10 +14,13 @@ void initLED() {
 }
 
 void turnOnLED(uint8_t pin) {
+    Serial.println("Turning on madafak");
+
     digitalWrite(pin, HIGH);
 }
 
 
 void turnOffLED(uint8_t pin) {
+    Serial.println("Turning off madafak");
     digitalWrite(pin, LOW);
 }

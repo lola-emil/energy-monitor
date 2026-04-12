@@ -7,8 +7,8 @@ import (
 	deviceclaim "backend/internal/api/device-claim"
 	energyreading "backend/internal/api/energy-reading"
 	"backend/internal/api/user"
+	"backend/internal/event"
 	mymiddleware "backend/internal/my-middleware"
-	"backend/internal/sse"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -58,7 +58,7 @@ func SPAHandler(staticPath string) http.HandlerFunc {
 	})
 }
 
-func (s *Server) RegisterRoutes(sseBroker *sse.SSEBroker) http.Handler {
+func (s *Server) RegisterRoutes(sseBroker *event.Hub) http.Handler {
 	viteURL, _ := url.Parse("http://localhost:5173")
 	viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 
@@ -90,7 +90,7 @@ func (s *Server) RegisterRoutes(sseBroker *sse.SSEBroker) http.Handler {
 	r.Get("/health", s.healthHandler)
 
 	// SSE route
-	r.Get("/events", sseBroker.ServeHTTP)
+	r.Get("/events", sseBroker.SseHandler())
 
 	// SERVE FRONTEND
 	if os.Getenv("ENV") == "dev" {

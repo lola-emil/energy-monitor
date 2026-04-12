@@ -1,9 +1,12 @@
 package mymqtt
 
 import (
+	energyreading "backend/internal/api/energy-reading"
+	"backend/internal/event"
 	jwtutil "backend/internal/pkg/jwt-util"
-	"backend/internal/sse"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -15,13 +18,21 @@ import (
 )
 
 type TopicHandler struct {
-	sseBroker *sse.SSEBroker
+	sseBroker *event.Hub
 	repo      *Repository
 }
 
-func NewTopicHandler(sseBroker *sse.SSEBroker, repo *Repository) *TopicHandler {
+func NewTopicHandler(sseBroker *event.Hub, repo *Repository) *TopicHandler {
+	if sseBroker == nil {
+		panic("sseBroker cannot be nil")
+	}
+	if repo == nil {
+		panic("repo cannot be nil")
+	}
+
 	return &TopicHandler{
-		repo: repo,
+		repo:      repo,
+		sseBroker: sseBroker,
 	}
 }
 
@@ -42,33 +53,30 @@ func (th *TopicHandler) RegisterDevice(c mqtt.Client, m mqtt.Message) {
 		return
 	}
 
-	exists, err := th.repo.DeviceExists(data.DeviceCode)
+	device, err := th.repo.DeviceExists(data.DeviceCode)
 
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Println("Exists check", err.Error())
 		return
 	}
 
-	if exists {
+	var deviceID int64
+
+	if device != nil {
 		log.Println("Device already exists")
-		return
+		deviceID = device.ID
+	} else {
+		id, err := th.repo.SaveDevice(data)
+		if err != nil {
+			log.Println(err.Error())
+			log.Println("Error Saving Device")
+			return
+		}
+
+		deviceID = id
 	}
 
-	id, err := th.repo.SaveDevice(data)
-
-	if err != nil {
-		log.Println(err.Error())
-		log.Println("Error Saving Device")
-		return
-	}
-
-	responsePayload := map[string]int64{
-		"device_id": id,
-	}
-
-	resPayload, _ := json.Marshal(responsePayload)
-
-	token := c.Publish(fmt.Sprintf("device/%s/register/response", data.DeviceCode), 0, false, resPayload)
+	token := c.Publish(fmt.Sprintf("device/%s/register/success", data.DeviceCode), 0, false, strconv.Itoa(int(deviceID)))
 
 	token.Wait()
 
@@ -77,7 +85,7 @@ func (th *TopicHandler) RegisterDevice(c mqtt.Client, m mqtt.Message) {
 		return
 	}
 
-	log.Printf("Device %s successfully registered with id %d", data.DeviceCode, id)
+	log.Printf("Device %s successfully registered with id %d", data.DeviceCode, deviceID)
 }
 
 func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
@@ -99,6 +107,8 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 
 	payload := string(m.Payload())
 
+	log.Println(payload)
+
 	var sensorData SensorData
 	if err := json.Unmarshal([]byte(payload), &sensorData); err != nil {
 		log.Println("error unmarshalling JSON:", err)
@@ -113,21 +123,43 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 		return
 	}
 
-	log.Println("Saving sensor data...", deviceID)
-	body := EnergyReadingBody{
-		DeviceId: deviceID,
-		Voltage:  sensorData.Voltage,
-		Current:  sensorData.Current,
-		PowerKwh: sensorData.PowerKwh,
-	}
-	reading, err := th.repo.SaveDeviceReadings(body)
-	log.Println("Reading: ", reading)
+	deviceClaim, err := th.repo.GetDeviceClaimByDeviceId(deviceID)
 
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
-	th.sseBroker.Broadcast <- []byte(payload)
+
+	log.Println("Saving sensor data...", deviceID)
+	body := energyreading.EnergyReadingBody{
+		DeviceId: deviceID,
+		Voltage:  sensorData.Voltage,
+		Current:  sensorData.Current,
+		PowerKwh: sensorData.PowerDraw,
+	}
+	reading, err := th.repo.SaveDeviceReadings(body)
+	log.Println("Reading: ", reading)
+
+	if th.sseBroker == nil {
+		log.Println("sseBroker is NIL")
+	}
+	if th.sseBroker != nil && th.sseBroker.Broadcast == nil {
+		log.Println("Broadcast channel is NIL")
+	}
+	if deviceClaim == nil {
+		log.Println("deviceClaim is NIL")
+	}
+
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	th.sseBroker.Broadcast <- event.Event{
+		UserID:   deviceClaim.UserId,
+		DeviceID: deviceID,
+		Value:    body,
+	}
 }
 
 func (th *TopicHandler) AuthenticateDevice(c mqtt.Client, m mqtt.Message) {

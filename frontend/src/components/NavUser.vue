@@ -27,6 +27,8 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from "@/components/ui/sidebar"
+import { useAuthStore } from "@/stores/auth"
+import { useRouter } from "vue-router"
 
 interface User {
     name: string
@@ -39,9 +41,12 @@ defineProps<{
 }>()
 
 const { isMobile } = useSidebar()
+const auth = useAuthStore();
+const router = useRouter();
 
 const logout = () => {
-    alert("Holy shit");
+    auth.logout();
+    router.push("/auth/login")
 }
 </script>
 
@@ -85,22 +90,7 @@ const logout = () => {
                             </div>
                         </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                            <IconUserCircle />
-                            Account
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <IconCreditCard />
-                            Billing
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <IconNotification />
-                            Notifications
-                        </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
+
                     <DropdownMenuItem @click="logout">
                         <IconLogout />
                         Log out

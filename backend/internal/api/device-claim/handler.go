@@ -3,7 +3,10 @@ package deviceclaim
 import (
 	"backend/internal/api/device"
 	jwtutil "backend/internal/pkg/jwt-util"
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -25,6 +28,11 @@ func (h *DeviceClaimHandler) GetDeviceClaims(w http.ResponseWriter, r *http.Requ
 	pathDeviceId := r.PathValue("device-id")
 	id, err := strconv.ParseInt(pathDeviceId, 10, 64)
 
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	claims, err := h.repo.GetDeviceClaims(r.Context(), id)
 
 	if err != nil {
@@ -45,7 +53,11 @@ func (h *DeviceClaimHandler) GetDeviceClaim(w http.ResponseWriter, r *http.Reque
 	claim, err := h.repo.GetDeviceClaimById(id)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "No claims yet", http.StatusBadRequest)
+		} else {
+			http.Error(w, fmt.Sprintf("SQL: %s", err.Error()), http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -106,7 +118,7 @@ func (h *DeviceClaimHandler) ClaimDevice(w http.ResponseWriter, r *http.Request)
 	}
 
 	if deviceTaken {
-		http.Error(w, "Device Taken", http.StatusBadRequest)
+		http.Error(w, "Device Taken", http.StatusConflict)
 		return
 	}
 

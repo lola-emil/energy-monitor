@@ -19,6 +19,14 @@ type EnergyReading struct {
 	timestamp *time.Time
 }
 
+type EnergyReadingBody struct {
+	DeviceId int64
+
+	Voltage  decimal.Decimal
+	Current  decimal.Decimal
+	PowerKwh decimal.Decimal
+}
+
 // --- DTOs
 type EnergyReadingRequest struct {
 	DeviceId int64           `json:"device_id" validate:"required,gt=0"`
