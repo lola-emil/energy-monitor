@@ -3,7 +3,14 @@
     <main class="px-5 mt-3">
         <div class="my-3 flex justify-between items-end">
             <div class="flex items-center gap-1">
-                <input type="datetime-local" class="input" v-model="dateTime" />
+                <NativeSelect>
+                    <NativeSelectOption>Daily</NativeSelectOption>
+                    <NativeSelectOption>Weekly</NativeSelectOption>
+                    <NativeSelectOption>Montly</NativeSelectOption>
+                    <NativeSelectOption>Yearly</NativeSelectOption>
+                </NativeSelect>
+
+                <Input type="month" />
 
                 <Button class="btn btn-ghost btn-square">
                     <RotateCw :size="20" />
@@ -135,6 +142,11 @@
 
 <script setup lang="ts">
 import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer } from "lucide-vue-next";
+import { Input } from "@/components/ui/input";
+import {
+NativeSelect,
+NativeSelectOption
+} from '@/components/ui/native-select'
 import { ref } from "vue";
 
 import { Button } from '@/components/ui/button';
