@@ -3,10 +3,15 @@ import { createRouter, createWebHistory } from 'vue-router';
 import AnalyticsView from '@/views/dashboard/AnalyticsView.vue';
 import DeviceAnalytics from '@/views/device-analytics/DeviceAnalytics.vue';
 import LoginView from '@/views/auth/LoginView.vue';
+import Dashboard from '@/views/test/Dashboard.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: "/test-dashboard",
+      component: Dashboard
+    },
     {
       path: "/",
       component: () => import("@/layout/MainLayout.vue"),
