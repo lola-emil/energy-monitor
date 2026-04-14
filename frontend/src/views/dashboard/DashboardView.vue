@@ -1,20 +1,27 @@
 <template>
 
     <main class="px-5 mt-3">
-        <div class="my-3 flex justify-between items-end">
-            <div class="flex items-center gap-1">
-                <input type="datetime-local" class="input" v-model="dateTime" />
+            <div class="my-3 flex justify-between items-end">
+                <div class="flex items-center gap-1">
+                    <NativeSelect class="w-max">
+                        <NativeSelectOption>Daily</NativeSelectOption>
+                        <NativeSelectOption>Weekly</NativeSelectOption>
+                        <NativeSelectOption>Montly</NativeSelectOption>
+                        <NativeSelectOption>Yearly</NativeSelectOption>
+                    </NativeSelect>
 
-                <Button class="btn btn-ghost btn-square">
-                    <RotateCw :size="20" />
-                </Button>
+                    <Input type="month" />
+
+                    <Button class="btn btn-ghost btn-square">
+                        <RotateCw :size="20" />
+                    </Button>
+                </div>
+                <div>
+                    <Button class="btn btn-primary">
+                        <Printer :size="19" /> Print Report
+                    </Button>
+                </div>
             </div>
-            <div>
-                <Button class="btn btn-primary">
-                    <Printer :size="19" /> Print Report
-                </Button>
-            </div>
-        </div>
         <section class="grid grid-cols-3 min-h-96 gap-5">
             <Card class="col-span-3 lg:col-span-1">
                 <CardContent class="p-6">
@@ -28,7 +35,7 @@
 
                     <div>
                         <p class="text-3xl font-semibold">
-                            1,284 kWh
+                            84 kWh
                         </p>
                     </div>
                 </CardContent>
@@ -77,7 +84,7 @@
 
 
                         <div>
-                            <p class="text-lg font-semibold">233 A</p>
+                            <p class="text-lg font-semibold">23 A</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -94,7 +101,7 @@
 
 
                         <div>
-                            <p class="text-lg font-semibold">233 Hz</p>
+                            <p class="text-lg font-semibold">50 Hz</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -109,18 +116,34 @@
                     </CardTitle>
                 </CardHeader>
 
-                <CardContent class="p-0">
-                    <div ref="pieChart" class="h-full"></div>
+                <CardContent class="p-0 flex-1">
+                    <div class="h-96">
+                        <EnergyUsageChart />
+                    </div>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Devices</CardTitle>
+                    <CardTitle>Alerts</CardTitle>
                 </CardHeader>
 
                 <CardContent>
+                    <Empty>
+                        <EmptyHeader>
 
+                        </EmptyHeader>
+                        <EmptyContent>
+                            <EmptyMedia variant="icon">
+                                <TriangleAlert />
+                            </EmptyMedia>
+                            <EmptyTitle>No Alerts Yet</EmptyTitle>
+                            <EmptyDescription>
+                                The system haven't detected any anomalies yet.
+                            </EmptyDescription>
+                        </EmptyContent>
+
+                    </Empty>
                 </CardContent>
             </Card>
         </section>
@@ -140,7 +163,21 @@ import {
     Card, CardContent, CardHeader,
     CardTitle
 } from '@/components/ui/card';
-
+import EnergyUsageChart from "./components/EnergyUsageChart.vue";
+import { TriangleAlert } from 'lucide-vue-next'
+import { Input } from "@/components/ui/input";
+import {
+    NativeSelect,
+    NativeSelectOption
+} from '@/components/ui/native-select'
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty'
 
 function getNowDatetimeLocal() {
     const now = new Date()

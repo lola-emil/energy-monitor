@@ -11,8 +11,8 @@
                                 <GalleryVerticalEnd class="size-4" />
                             </div>
                             <div class="grid flex-1 text-left text-sm leading-tight">
-                                <span class="truncate font-semibold">Acme Inc</span>
-                                <span class="truncate text-xs">Enterprise</span>
+                                <span class="truncate font-semibold">Energy Consumption Monitor</span>
+                                <span class="truncate text-xs"></span>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -106,6 +106,7 @@ import { useAuthStore } from '@/stores/auth';
 import { onMounted, ref } from 'vue';
 import AddDeviceModal from '@/components/AddDeviceModal.vue';
 import { useModalStore } from '@/stores/modal';
+import { GalleryVerticalEnd } from "lucide-vue-next"
 
 interface Device {
     Devicecode: string

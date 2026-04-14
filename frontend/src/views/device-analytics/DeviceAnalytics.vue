@@ -23,34 +23,41 @@
             </CardContent>
         </Card>
 
-        <section class="mt-5 grid grid-cols-2 gap-5 h-[80vh]">
+        <section class="mt-5 grid grid-cols-1 gap-5">
             <Card>
-                <CardContent>
+                <CardHeader>
                     <CardTitle class="">
-                        Energy Usage (KWh)
+                        Power and Current
                     </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="h-96">
+                        <PowerHistoryChart/>
+                    </div>
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardContent>
-                    <CardTitle class="">
-                        Current and Power
-                    </CardTitle>
-                </CardContent>
-            </Card>
+            <div class="grid grid-cols-2 gap-5 h-52">
+                <Card>
+                    <CardHeader>
+                        <CardTitle class="">
+                            Energy Usage (KWh)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        
+                    </CardContent>
+                </Card>
 
-            <Card>
-                <CardContent></CardContent>
-            </Card>
 
-            <Card>
-                <CardContent>
-                    <CardTitle class="">
-                        Voltage
-                    </CardTitle>
-                </CardContent>
-            </Card>
+                <Card>
+                    <CardContent>
+                        <CardTitle class="">
+                            Voltage
+                        </CardTitle>
+                    </CardContent>
+                </Card>
+            </div>
 
         </section>
         <br>
@@ -60,13 +67,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import {
-    Card, CardContent, CardTitle
+    Card, CardContent, CardTitle, CardHeader
 } from '@/components/ui/card';
 import { useRoute } from 'vue-router';
 import { MonitorSmartphone } from "lucide-vue-next";
 import { axiosInstance } from '@/api/axios';
 import { useAuthStore } from '@/stores/auth';
 import { useSSEStore } from '@/stores/sseEvent';
+import PowerHistoryChart from './components/PowerHistoryChart.vue';
 
 interface Device {
     device_code: string

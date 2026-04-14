@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/auth';
 import { createRouter, createWebHistory } from 'vue-router';
-import AnalyticsView from '@/views/dashboard/AnalyticsView.vue';
+import AnalyticsView from '@/views/dashboard/DashboardView.vue';
 import DeviceAnalytics from '@/views/device-analytics/DeviceAnalytics.vue';
 import LoginView from '@/views/auth/LoginView.vue';
 
