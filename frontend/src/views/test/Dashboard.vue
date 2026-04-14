@@ -142,12 +142,7 @@
                                 The system haven't detected any anomalies yet.
                             </EmptyDescription>
                         </EmptyContent>
-                        <!-- <Button variant="link" as-child class="text-muted-foreground" size="sm">
-                            <a href="#">
-                                Learn More
-                                <ArrowUpRightIcon />
-                            </a>
-                        </Button> -->
+
                     </Empty>
                 </CardContent>
             </Card>
