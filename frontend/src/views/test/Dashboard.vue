@@ -108,7 +108,7 @@
             </div>
         </section>
 
-        <section class="mt-5 min-h-116 grid grid-cols-2 gap-5">
+        <section class="mt-5 min-h-116 grid grid-cols-1 lg:grid-cols-2 gap-5">
             <Card>
                 <CardHeader>
                     <CardTitle>
@@ -129,7 +129,7 @@
                 </CardHeader>
 
                 <CardContent>
-
+                    <div class="h-96"></div>
                 </CardContent>
             </Card>
         </section>
