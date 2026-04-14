@@ -125,11 +125,30 @@
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Devices</CardTitle>
+                    <CardTitle>Alerts</CardTitle>
                 </CardHeader>
 
                 <CardContent>
-                    <div class="h-96"></div>
+                    <Empty>
+                        <EmptyHeader>
+
+                        </EmptyHeader>
+                        <EmptyContent>
+                            <EmptyMedia variant="icon">
+                                <BrushCleaning />
+                            </EmptyMedia>
+                            <EmptyTitle>No Alerts Yet</EmptyTitle>
+                            <EmptyDescription>
+                                The system haven't detected any anomalies yet.
+                            </EmptyDescription>
+                        </EmptyContent>
+                        <!-- <Button variant="link" as-child class="text-muted-foreground" size="sm">
+                            <a href="#">
+                                Learn More
+                                <ArrowUpRightIcon />
+                            </a>
+                        </Button> -->
+                    </Empty>
                 </CardContent>
             </Card>
         </section>
@@ -144,8 +163,8 @@
 import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import {
-NativeSelect,
-NativeSelectOption
+    NativeSelect,
+    NativeSelectOption
 } from '@/components/ui/native-select'
 import { ref } from "vue";
 
@@ -155,7 +174,15 @@ import {
     CardTitle
 } from '@/components/ui/card';
 import EnergyUsageChart from "./components/EnergyUsageChart.vue";
-
+import { BrushCleaning } from 'lucide-vue-next'
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty'
 
 function getNowDatetimeLocal() {
     const now = new Date()
