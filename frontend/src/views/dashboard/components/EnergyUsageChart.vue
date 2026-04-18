@@ -7,29 +7,31 @@ import { onMounted, onBeforeUnmount, watch, useTemplateRef } from 'vue';
 import { useDark } from '@vueuse/core';
 import * as echarts from 'echarts';
 import type { ECharts, EChartsOption } from 'echarts';
+import { useThemeColors } from '@/composables/useThemeColors';
 
 const chartRef = useTemplateRef("barchart");
 let chart: ECharts | null = null;
 
 const isDark = useDark();
+const themeColors = useThemeColors();
 
-const getThemeColors = () => {
-    const css = getComputedStyle(document.documentElement);
+const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
 
-    return {
-        background: css.getPropertyValue('--background').trim(),
-        primary: css.getPropertyValue('--chart-2').trim(),
-        foreground: css.getPropertyValue('--popover').trim(),
-        popover: css.getPropertyValue('--popover').trim(),
-        popoverForeground: css.getPropertyValue('--popover-foreground').trim(),
-        muted: css.getPropertyValue('--muted-foreground').trim(),
-        border: css.getPropertyValue('--border').trim(),
-        chart1: css.getPropertyValue('--chart-1').trim(),
-    };
-};
+const props = defineProps<{
+    months?: string[];
+    data: number[]
+}>();
+
+
+watch(() => props.data, (newVal) => {
+    initChart(); 
+});
 
 const getOption = (): EChartsOption => {
-    const c = getThemeColors();
+    const c = themeColors.colors.value!;
 
     return {
         backgroundColor: 'transparent',
@@ -51,10 +53,7 @@ const getOption = (): EChartsOption => {
 
         xAxis: {
             type: 'category',
-            data: [
-                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-            ],
+            data: months,
             axisLine: {
                 lineStyle: { color: c.border }
             },
@@ -79,7 +78,7 @@ const getOption = (): EChartsOption => {
         series: [
             {
                 type: 'bar',
-                data: [750, 720, 680, 600, 580, 550, 590, 610, 650, 720, 840, 980],
+                data: props.data,
                 barWidth: 28,
 
                 itemStyle: {
@@ -108,6 +107,7 @@ const initChart = () => {
 };
 
 onMounted(() => {
+    console.log(props.data);
     initChart();
     window.addEventListener('resize', resize);
 });

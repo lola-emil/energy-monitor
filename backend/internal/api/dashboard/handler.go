@@ -26,6 +26,7 @@ func (h *DashboardHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 	t, err := time.Parse(layout, dateStr)
 
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Invalid date format", http.StatusBadRequest)
 		return
 	}
@@ -45,18 +46,18 @@ func (h *DashboardHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *DashboardHandler) GetMonthlyAvgPower(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardHandler) GetMonthlyConsumption(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	monthlyEnergyConsumed, err := h.repo.GetMonthlyAvgPower(2026)
+	monthlyConsumption, err := h.repo.GetMonthyEnergyConsumption(r.Context())
 
 	if err != nil {
-		log.Println("DB error:", err.Error())
+		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(monthlyEnergyConsumed); err != nil {
+	if err := json.NewEncoder(w).Encode(monthlyConsumption); err != nil {
 		log.Println("Response error:", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

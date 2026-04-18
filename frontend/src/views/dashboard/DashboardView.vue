@@ -1,27 +1,27 @@
 <template>
 
     <main class="px-5 mt-3">
-            <div class="my-3 flex justify-between items-end">
-                <div class="flex items-center gap-1">
-                    <NativeSelect class="w-max">
-                        <NativeSelectOption>Daily</NativeSelectOption>
-                        <NativeSelectOption>Weekly</NativeSelectOption>
-                        <NativeSelectOption>Montly</NativeSelectOption>
-                        <NativeSelectOption>Yearly</NativeSelectOption>
-                    </NativeSelect>
+        <div class="my-3 flex justify-between items-end">
+            <div class="flex items-center gap-1">
+                <!-- <NativeSelect class="w-max">
+                    <NativeSelectOption>Daily</NativeSelectOption>
+                    <NativeSelectOption>Weekly</NativeSelectOption>
+                    <NativeSelectOption>Montly</NativeSelectOption>
+                    <NativeSelectOption>Yearly</NativeSelectOption>
+                </NativeSelect> -->
 
-                    <Input type="month" />
+                <Input type="month" v-model="month" />
 
-                    <Button class="btn btn-ghost btn-square">
-                        <RotateCw :size="20" />
-                    </Button>
-                </div>
-                <div>
-                    <Button class="btn btn-primary">
-                        <Printer :size="19" /> Print Report
-                    </Button>
-                </div>
+                <Button class="btn btn-ghost btn-square">
+                    <RotateCw :size="20" />
+                </Button>
             </div>
+            <div>
+                <Button class="btn btn-primary">
+                    <Printer :size="19" /> Print Report
+                </Button>
+            </div>
+        </div>
         <section class="grid grid-cols-3 min-h-96 gap-5">
             <Card class="col-span-3 lg:col-span-1">
                 <CardContent class="p-6">
@@ -35,7 +35,7 @@
 
                     <div>
                         <p class="text-3xl font-semibold">
-                            84 kWh
+                            {{ overview?.total_consumed.toFixed(2) }} kWh
                         </p>
                     </div>
                 </CardContent>
@@ -53,7 +53,7 @@
 
                         <div>
                             <p class="text-lg font-semibold">
-                                233 V
+                                {{ overview?.avg_volt.toFixed(2) }} V
                             </p>
                         </div>
                     </CardContent>
@@ -69,7 +69,8 @@
 
 
                         <div>
-                            <p class="text-lg font-semibold">50 kWh</p>
+                            <p class="text-lg font-semibold">
+                                {{ overview?.avg_power.toFixed(2) }} kWh</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -118,7 +119,7 @@
 
                 <CardContent class="p-0 flex-1">
                     <div class="h-96">
-                        <EnergyUsageChart />
+                        <EnergyUsageChart :data="graphData"/>
                     </div>
                 </CardContent>
             </Card>
@@ -156,7 +157,7 @@
 
 <script setup lang="ts">
 import { Leaf, Plug, Zap, Atom, Radio, RotateCw, Printer } from "lucide-vue-next";
-import { ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 
 import { Button } from '@/components/ui/button';
 import {
@@ -178,18 +179,93 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty'
+import { axiosInstance } from "@/api/axios";
+import { useAuthStore } from "@/stores/auth";
 
-function getNowDatetimeLocal() {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
+interface Overview {
+    total_consumed: number;
+    avg_volt: number;
+    avg_power: number;
+    avg_curr: number;
+    avg_freq: number;
 }
 
-const dateTime = ref(getNowDatetimeLocal());
 
+type MonthlyEnergy = {
+    month: string | Date;
+    energy_kwh: number;
+};
+
+const auth = useAuthStore();
+
+const month = ref();
+const overview = ref<Overview | null>(null);
+const monthlyEnergy = ref<MonthlyEnergy[]>([]);
+const graphData = ref<number[]>([]);
+
+function initData(month: string) {
+    axiosInstance.get<Overview>("/api/dashboard/overview?month=" + month,
+        {
+            headers: {
+                "Authorization": `Bearer ${auth.token}`
+            }
+        })
+        .then(val => {
+            overview.value = val.data;
+        }).catch(err => {
+            console.log(err)
+        })
+}
+
+function initGraphData() {
+    axiosInstance.get<MonthlyEnergy[]>("/api/dashboard/monthly-consumption", {
+        headers: {
+            "Authorization": `Bearer ${auth.token}`
+        }
+    }).then(val => {
+        monthlyEnergy.value = val.data;
+        graphData.value = mapMonthlyToChart(val.data).data;
+
+        console.log(graphData.value)
+    }).catch(err => {
+        console.log(err)
+    })
+}
+
+
+function mapMonthlyToChart(data: MonthlyEnergy[]) {
+    const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    const values = new Array(12).fill(0);
+
+    data.forEach(d => {
+        const date = new Date(d.month);
+        const monthIndex = date.getMonth(); // 0 = Jan, 11 = Dec
+        values[monthIndex] = d.energy_kwh;
+    });
+
+    return {
+        labels: months,
+        data: values
+    };
+}
+
+watch([month], () => {
+    console.log(month.value);
+    initData(month.value + "-01");
+})
+
+onMounted(() => {
+    const date = "2026-04-01"
+
+    initData(date);
+    
+    initGraphData();
+
+
+})
 
 </script>

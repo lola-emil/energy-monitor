@@ -16,7 +16,7 @@ func (r *DashboardRoute) RegisterRoutes() *chi.Mux {
 	mux := chi.NewRouter()
 
 	mux.Get("/overview", r.handler.GetOverview)
-	mux.Get("/montly-consumed", r.handler.GetMonthlyAvgPower)
+	mux.Get("/monthly-consumption", r.handler.GetMonthlyConsumption)
 
 	return mux
 }

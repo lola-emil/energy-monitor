@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"context"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -19,18 +20,20 @@ func NewDashboardRepo(db *sqlx.DB) *DashboardRepo {
 func (r *DashboardRepo) GetOverview(month time.Time) (*Overview, error) {
 	query := `
 	SELECT
-		COALESCE(SUM(power_kwh), 0),
+		COALESCE(SUM(power * 2.0 / 3600.0 / 1000.0), 0),
 		COALESCE(AVG(voltage), 0),
-		COALESCE(AVG(power_kwh), 0),
+		COALESCE(AVG(power) / 1000, 0),
 		COALESCE(AVG(current), 0)
-	FROM energy_readings
-	WHERE stamp >= date_trunc('month', $1)
-	  AND stamp <  date_trunc('month', $1) + INTERVAL '1 month';
+	FROM readings_raw
+	WHERE bucket >= $1 AND bucket < $2;
 	`
+
+	start := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	end := start.AddDate(0, 1, 0)
 
 	var result Overview
 
-	err := r.db.QueryRow(query, month).Scan(
+	err := r.db.QueryRow(query, start, end).Scan(
 		&result.TotalEnergyConsumed,
 		&result.AvgVoltage,
 		&result.AvgPowerDraw,
@@ -44,44 +47,20 @@ func (r *DashboardRepo) GetOverview(month time.Time) (*Overview, error) {
 	return &result, nil
 }
 
-func (r *DashboardRepo) GetMonthlyAvgPower(year int) ([]MonthlyPower, error) {
+func (r *DashboardRepo) GetMonthyEnergyConsumption(ctx context.Context) ([]MonthlyConsumption, error) {
 	query := `
 	SELECT
-		m.month,
-		COALESCE(AVG(e.power_kwh), 0) AS avg_power_draw
-	FROM generate_series(
-		DATE_TRUNC('year', $1::date),
-		DATE_TRUNC('year', $1::date) + INTERVAL '11 months',
-		INTERVAL '1 month'
-	) AS m(month)
-	LEFT JOIN energy_readings e
-		ON date_trunc('month', e.stamp) = m.month
-	GROUP BY m.month
-	ORDER BY m.month;
+		date_trunc('month', bucket) AS month,
+		SUM(power * 2.0 / 3600.0 / 1000.0) AS energy_kwh
+	FROM readings_raw
+	GROUP BY month
+	ORDER BY month;
 	`
+	var result []MonthlyConsumption
 
-	// Convert year → time.Time (Jan 1 of that year)
-	startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
-
-	rows, err := r.db.Query(query, startOfYear)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var results []MonthlyPower
-
-	for rows.Next() {
-		var m MonthlyPower
-		if err := rows.Scan(&m.Month, &m.AvgPowerDraw); err != nil {
-			return nil, err
-		}
-		results = append(results, m)
-	}
-
-	if err := rows.Err(); err != nil {
+	if err := r.db.SelectContext(ctx, &result, query); err != nil {
 		return nil, err
 	}
 
-	return results, nil
+	return result, nil
 }

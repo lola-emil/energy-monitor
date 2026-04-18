@@ -40,6 +40,8 @@ func (th *TopicHandler) RegisterDevice(c mqtt.Client, m mqtt.Message) {
 	log.Println("Registering Device")
 	payload := string(m.Payload())
 
+	fmt.Println(payload)
+
 	var data DeviceRegister
 	if err := json.Unmarshal([]byte(payload), &data); err != nil {
 		log.Println("error unmarshalling JSON:", err)
@@ -123,10 +125,13 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 		return
 	}
 
+	log.Printf("Shit ID %d", deviceID)
+
 	deviceClaim, err := th.repo.GetDeviceClaimByDeviceId(deviceID)
 
 	if err != nil {
 		log.Println(err.Error())
+		log.Println("Shit")
 		return
 	}
 
@@ -137,8 +142,16 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 		Current:  sensorData.Current,
 		PowerKwh: sensorData.PowerDraw,
 	}
-	reading, err := th.repo.SaveDeviceReadings(body)
-	log.Println("Reading: ", reading)
+
+	go func(data energyreading.EnergyReadingBody) {
+		reading, err := th.repo.SaveDeviceReadings(body)
+
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		log.Println("Reading: ", reading)
+	}(body)
 
 	if th.sseBroker == nil {
 		log.Println("sseBroker is NIL")
@@ -148,11 +161,6 @@ func (th *TopicHandler) SubEnergyReadinTopic(c mqtt.Client, m mqtt.Message) {
 	}
 	if deviceClaim == nil {
 		log.Println("deviceClaim is NIL")
-	}
-
-	if err != nil {
-		log.Println(err.Error())
-		return
 	}
 
 	th.sseBroker.Broadcast <- event.Event{
