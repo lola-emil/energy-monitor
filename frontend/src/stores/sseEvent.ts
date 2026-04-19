@@ -9,8 +9,9 @@ export const useSSEStore = defineStore('sse', () => {
 
     const connect = (userId: string) => {
         if (eventSource.value) return;
-        console.log("Shit SSE");
-        eventSource.value = new EventSource(`http://localhost:8080/events?userid=${userId}`);
+
+        const URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000"
+        eventSource.value = new EventSource(`${URL}/events?userid=${userId}`);
     };
 
     const subscribe = (eventName: string, callback: (event: MessageEvent<string>) => void) => {

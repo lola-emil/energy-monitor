@@ -109,7 +109,7 @@
             </div>
         </section>
 
-        <section class="mt-5 min-h-116 grid grid-cols-2 gap-5">
+        <section class="mt-5 min-h-116 grid grid-cols-1 gap-5">
             <Card>
                 <CardHeader>
                     <CardTitle>
@@ -165,12 +165,8 @@ import {
     CardTitle
 } from '@/components/ui/card';
 import EnergyUsageChart from "./components/EnergyUsageChart.vue";
-import { TriangleAlert } from 'lucide-vue-next'
+import { TriangleAlert } from 'lucide-vue-next';
 import { Input } from "@/components/ui/input";
-import {
-    NativeSelect,
-    NativeSelectOption
-} from '@/components/ui/native-select'
 import {
     Empty,
     EmptyContent,
@@ -178,7 +174,7 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-} from '@/components/ui/empty'
+} from '@/components/ui/empty';
 import { axiosInstance } from "@/api/axios";
 import { useAuthStore } from "@/stores/auth";
 
