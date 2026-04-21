@@ -1,4 +1,10 @@
 <template>
+    <NavUser :user="{
+        avatar: '',
+        email: 'ewyaks',
+        name: 'Pedro'
+    }"/>
+    
     <main class="px-5 mt-3">
         <Card>
             <CardContent>
@@ -64,17 +70,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
 import {
     Card, CardContent, CardTitle
 } from '@/components/ui/card';
-import { useRoute } from 'vue-router';
 import { MonitorSmartphone } from "lucide-vue-next";
-import { axiosInstance } from '@/api/axios';
-import { useAuthStore } from '@/stores/auth';
-import { useSSEStore } from '@/stores/sseEvent';
 import AnalyticsEnergyUsage from './components/AnalyticsEnergyUsage.vue';
 import CardHeader from '@/components/ui/card/CardHeader.vue';
+import NavUser from '@/components/NavUser.vue';
 
 interface Device {
     device_code: string
@@ -100,13 +102,5 @@ export interface DeviceEvent {
     device_id: number;
     value: DeviceValue;
 }
-
-
-const route = useRoute();
-const auth = useAuthStore();
-
-const sse = useSSEStore();
-let currentEvent: string | null = null
-
 
 </script>

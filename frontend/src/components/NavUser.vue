@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import {
-    IconCreditCard,
     IconDotsVertical,
-    IconLogout,
-    IconNotification,
-    IconUserCircle,
+    IconLogout
 } from "@tabler/icons-vue"
 
 import {
@@ -14,12 +11,8 @@ import {
 } from "@/components/ui/avatar"
 import {
     DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuLabel, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import {
     SidebarMenu,

@@ -47,7 +47,7 @@
                             <Plug />
                         </div>
 
-                        <p class="text-lg mt-3">
+                        <p class="lg:text-lg mt-3">
                             Average Voltage
                         </p>
 
@@ -65,7 +65,7 @@
                             <Zap />
                         </div>
 
-                        <p class="text-lg mt-3">Average Power Draw</p>
+                        <p class="lg:text-lg mt-3">Average Power Draw</p>
 
 
                         <div>
@@ -80,7 +80,7 @@
                             <Atom />
                         </div>
 
-                        <p class="text-lg mt-3">Average Current</p>
+                        <p class="lg:text-lg mt-3">Average Current</p>
 
 
                         <div>
@@ -97,7 +97,7 @@
                             <Radio />
                         </div>
 
-                        <p class="text-lg mt-3">Frequency</p>
+                        <p class="lg:text-lg mt-3">Frequency</p>
 
 
                         <div>

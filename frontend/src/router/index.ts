@@ -16,6 +16,11 @@ const router = createRouter({
       path: "/test-analytics",
       component: () => import("@/views/test/DeviceAnalytics.vue")
     },
+
+    {
+      path: "/test-homepage",
+      component: () => import("@/views/test/HomePage.vue")
+    },
     {
       path: "/",
       component: () => import("@/layout/MainLayout.vue"),
