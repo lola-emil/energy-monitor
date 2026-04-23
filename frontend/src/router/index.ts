@@ -21,6 +21,22 @@ const router = createRouter({
       path: "/test-homepage",
       component: () => import("@/views/test/HomePage.vue")
     },
+
+    {
+      path: "/test-devicelist",
+      component: () => import("@/views/test/DeviceList.vue")
+    },
+
+    {
+      path: "/test-devicedetail",
+      component: () => import("@/views/test/DeviceDetailPage.vue")
+    },
+
+    {
+      path: "/test-settings",
+      component: () => import("@/views/test/SettingsPage.vue")
+    },
+
     {
       path: "/",
       component: () => import("@/layout/MainLayout.vue"),
