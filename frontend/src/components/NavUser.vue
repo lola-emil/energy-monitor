@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-    IconDotsVertical,
-    IconLogout
-} from "@tabler/icons-vue"
-
+import { useAuthStore } from "@/stores/auth"
 import {
     Avatar,
     AvatarFallback,
@@ -20,8 +16,8 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from "@/components/ui/sidebar"
-import { useAuthStore } from "@/stores/auth"
 import { useRouter } from "vue-router"
+import { LogOut } from "lucide-vue-next"
 
 interface User {
     name: string
@@ -32,15 +28,15 @@ interface User {
 defineProps<{
     user: User
 }>()
-
+const authStore = useAuthStore()
 const { isMobile } = useSidebar()
-const auth = useAuthStore();
 const router = useRouter();
 
-const logout = () => {
-    auth.logout();
-    router.push("/auth/login")
+const handleLogout = () => {
+    authStore.logout()
+    router.push("/login")
 }
+
 </script>
 
 <template>
@@ -84,8 +80,8 @@ const logout = () => {
                         </div>
                     </DropdownMenuLabel>
 
-                    <DropdownMenuItem @click="logout">
-                        <IconLogout />
+                    <DropdownMenuItem @click="handleLogout">
+                        <LogOut />
                         Log out
                     </DropdownMenuItem>
                 </DropdownMenuContent>

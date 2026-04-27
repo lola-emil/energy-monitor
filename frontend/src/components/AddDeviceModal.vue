@@ -1,107 +1,166 @@
-<template>
-    <Dialog :open="modal.isOpen" @update:open="onOpenChange">
-        <form>
-
-            <DialogContent class="sm:max-w-106.25">
-
-                <DialogHeader>
-                    <DialogTitle>Add New Device</DialogTitle>
-                    <DialogDescription>
-                    </DialogDescription>
-                </DialogHeader>
-
-                <Alert v-if="formError" variant="destructive">
-                    <AlertCircleIcon />
-                    <AlertTitle>{{ formError }}</AlertTitle>
-                </Alert>
-
-                <div class="grid gap-4">
-                    <div class="grid gap-3">
-                        <Label for="name-1">Device Name</Label>
-                        <Input v-model="form.deviceName" />
-                    </div>
-                    <div class="grid gap-3">
-                        <Label for="username-1">Device Code</Label>
-                        <Input v-model="form.deviceCode" />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <DialogClose as-child>
-                        <Button variant="outline">
-                            Cancel
-                        </Button>
-                    </DialogClose>
-                    <Button type="submit" @click="submit">
-                        Save changes
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </form>
-    </Dialog>
-</template>
-
-
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useModalStore } from '@/stores/modal';
+import { reactive, ref } from "vue"
 
-import { AlertCircleIcon } from 'lucide-vue-next';
 import {
-    Alert, AlertTitle
-} from '@/components/ui/alert';
-import { reactive, ref } from 'vue';
-import { axiosInstance } from '@/api/axios';
-import { useAuthStore } from '@/stores/auth';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
-const modal = useModalStore();
-const auth = useAuthStore();
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldSet
+} from "@/components/ui/field"
+
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+
+const emit = defineEmits<{
+  submit: [
+    payload: {
+      name: string
+      location: string
+      device_code: string
+    }
+  ]
+}>()
+
+const open = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref("")
 
 const form = reactive({
-    deviceName: "",
-    deviceCode: ""
+  name: "",
+  location: "",
+  device_code: "",
 })
 
-const formError = ref<string | null>(null);
-
-const submit = () => {
-    axiosInstance.post("/api/device-claims", {
-        device_name: form.deviceName,
-        device_code: form.deviceCode,
-    }, {
-        headers: {
-            "Authorization": `Bearer ${auth.token}`
-        }
-    }).then(res => {
-        console.log(res.data);
-    }).catch(err => {
-        console.log(err.status);
-
-        if (err.status == 400) {
-            formError.value = "Invalid device or input";
-        }
-
-        if (err.status == 409) {
-            formError.value = "Device not available";
-        }
-
-        if (err.status >= 500) {
-            formError.value = "Server error";
-        }
-    })
+const resetForm = () => {
+  form.name = ""
+  form.location = ""
+  form.device_code = ""
+  errorMessage.value = ""
 }
 
-function onOpenChange(value: boolean) {
-    if (!value) modal.close()
+const handleSubmit = async () => {
+  errorMessage.value = ""
+
+  if (!form.name || !form.location || !form.device_code) {
+    errorMessage.value = "All fields are required"
+    return
+  }
+
+  if (!form.device_code.startsWith("EMS-")) {
+    errorMessage.value = "Invalid device code format"
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    emit("submit", {
+      name: form.name.trim(),
+      location: form.location.trim(),
+      device_code: form.device_code.trim().toUpperCase(),
+    })
+
+    resetForm()
+    open.value = false
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
+
+<template>
+  <Dialog v-model:open="open">
+    <DialogTrigger as-child>
+      <Button>
+        Add Appliance
+      </Button>
+    </DialogTrigger>
+
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>
+          Register New Appliance
+        </DialogTitle>
+
+        <DialogDescription>
+          Enter the protected device code to register your appliance.
+        </DialogDescription>
+      </DialogHeader>
+
+      <FieldSet>
+        <FieldGroup>
+
+          <Field>
+            <FieldLabel for="device_code">
+              Device Code
+            </FieldLabel>
+
+            <Input
+              id="device_code"
+              v-model="form.device_code"
+              placeholder="e.g. EMS-8F29A7XQ"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel for="name">
+              Appliance Name
+            </FieldLabel>
+
+            <Input
+              id="name"
+              v-model="form.name"
+              placeholder="e.g. Refrigerator"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel for="location">
+              Location
+            </FieldLabel>
+
+            <Input
+              id="location"
+              v-model="form.location"
+              placeholder="e.g. Kitchen"
+            />
+          </Field>
+
+        </FieldGroup>
+      </FieldSet>
+
+      <p
+        v-if="errorMessage"
+        class="text-sm text-red-500"
+      >
+        {{ errorMessage }}
+      </p>
+
+      <DialogFooter>
+        <Button
+          variant="outline"
+          @click="open = false"
+        >
+          Cancel
+        </Button>
+
+        <Button
+          @click="handleSubmit"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? "Registering..." : "Register Appliance" }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>

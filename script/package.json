@@ -1,9 +1,0 @@
-{
-  "name": "script",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
-  "dependencies": {
-    "mqtt": "^5.15.1"
-  }
-}
