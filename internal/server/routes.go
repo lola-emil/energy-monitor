@@ -79,7 +79,7 @@ func (s *Server) RegisterRoutes(
 		})
 	})
 
-	spaHandler := SPAHandler("dist")
+	spaHandler := SPAHandler("frontend/dist")
 	r.Handle("/*", spaHandler)
 
 	r.Get("/health", s.healthHandler)
