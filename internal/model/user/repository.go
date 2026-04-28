@@ -10,6 +10,11 @@ type UserRepository interface {
 	GetByUsername(ctx context.Context, username string) (*User, error)
 	UpdateLastLogin(ctx context.Context, userID int64) error
 	Create(ctx context.Context, user *User) error
+	GetByID(ctx context.Context, id int64) (*User, error)
+	UpdateProfile(
+		ctx context.Context,
+		user *User,
+	) error
 }
 
 type userRepository struct {
@@ -28,6 +33,22 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*U
 		FROM users
 		WHERE username = $1
 	`, username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *userRepository) GetByID(ctx context.Context, id int64) (*User, error) {
+	var user User
+
+	err := r.db.GetContext(ctx, &user, `
+		SELECT id, username, password_hash, name, role, is_active, last_login
+		FROM users
+		WHERE id = $1
+	`, id)
 
 	if err != nil {
 		return nil, err
@@ -60,4 +81,28 @@ func (r *userRepository) Create(ctx context.Context, user *User) error {
 		user.Role,
 		user.IsActive,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+}
+
+func (r *userRepository) UpdateProfile(
+	ctx context.Context,
+	user *User,
+) error {
+	query := `
+		UPDATE users
+		SET
+			username = $1,
+			password_hash = $2,
+			updated_at = NOW()
+		WHERE id = $3
+	`
+
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		user.Username,
+		user.Password,
+		user.ID,
+	)
+
+	return err
 }
