@@ -42,6 +42,11 @@ const router = createRouter({
         {
           path: "/devices/:id",
           component: () => import("@/pages/DeviceAnalyticsView.vue"),
+        },
+
+        {
+          path: "/account-settings",
+          component: () => import("@/pages/ProfileSettings.vue")
         }
       ]
     },

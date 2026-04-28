@@ -10,40 +10,47 @@
 <template>
     <main class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
         <div class="flex justify-center items-center">
-            <form class="w-xs" @submit.prevent="handleLogin">
-                <p class="text-lg font-semibold">Sign In</p>
+            <Card>
+                <CardContent>
+                    <form class="w-xs" @submit.prevent="handleLogin">
+                        <div class="w-full flex justify-center">
+                            <Logo/>
+                        </div>
+                        <p class="text-lg font-semibold">Sign In</p>
+                        <br>
+                        <FieldSet>
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel for="username">
+                                        Username
+                                    </FieldLabel>
+                                    <Input id="username" v-model="form.username" type="text" placeholder="" />
 
-                <br>
-                <FieldSet>
-                    <FieldGroup>
-                        <Field>
-                            <FieldLabel for="username">
-                                Username
-                            </FieldLabel>
-                            <Input id="username" v-model="form.username" type="text" placeholder="" />
+                                </Field>
+                                <Field>
+                                    <FieldLabel for="password">
+                                        Password
+                                    </FieldLabel>
 
-                        </Field>
-                        <Field>
-                            <FieldLabel for="password">
-                                Password
-                            </FieldLabel>
+                                    <Input id="password" type="password" v-model="form.password"
+                                        placeholder="********" />
+                                </Field>
+                            </FieldGroup>
+                        </FieldSet>
 
-                            <Input id="password" type="password" v-model="form.password" placeholder="********" />
-                        </Field>
-                    </FieldGroup>
-                </FieldSet>
-
-                <p v-if="errorMessage" class="text-sm text-red-500 mt-3">
-                    {{ errorMessage }}
-                </p>
-                <Button type="submit" class="w-full mt-5" :disabled="isLoading">
-                    <span v-if="isLoading">
-                        <span class="loading loading-spinner loading-xs"></span>
-                        Please wait..
-                    </span>
-                    <span v-else>Sign In</span>
-                </Button>
-            </form>
+                        <p v-if="errorMessage" class="text-sm text-red-500 mt-3">
+                            {{ errorMessage }}
+                        </p>
+                        <Button type="submit" class="w-full mt-5" :disabled="isLoading">
+                            <span v-if="isLoading">
+                                <span class="loading loading-spinner loading-xs"></span>
+                                Please wait..
+                            </span>
+                            <span v-else>Sign In</span>
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
         <div class="p-5 hidden lg:flex">
             <div class="rounded-lg bg-accent h-full w-full" id="split-screen-image">
@@ -70,6 +77,8 @@ import Button from '@/components/ui/button/Button.vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/services/auth.service'
+import { Card, CardContent } from '@/components/ui/card'
+import Logo from '@/components/Logo.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
