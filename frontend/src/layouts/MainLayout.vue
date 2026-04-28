@@ -6,13 +6,14 @@
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg">
-                            <div
-                                class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                <GalleryVerticalEnd class="size-4" />
-                            </div>
-                            <div class="grid flex-1 text-left text-sm leading-tight">
-                                <span class="truncate font-semibold">Energy Consumption Monitor</span>
-                                <span class="truncate text-xs"></span>
+                            <div class="flex gap-2">
+                                <div class="size-7">
+                                    <Logo />
+                                </div>
+                                <div class="grid flex-1 text-left text-sm leading-tight">
+                                    <span class="truncate font-semibold">VOLTRIS</span>
+                                    <span class="truncate text-xs text-muted-foreground">Smart Energy Monitoring</span>
+                                </div>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -100,6 +101,7 @@ import { MonitorSmartphone, LayoutDashboard, ChartLine, Settings } from "lucide-
 import NavUser from '@/components/NavUser.vue';
 import { useModalStore } from '@/stores/modal';
 import { GalleryVerticalEnd } from "lucide-vue-next";
+import Logo from '@/components/Logo.vue';
 
 const data = {
     user: {

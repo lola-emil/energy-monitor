@@ -21,7 +21,7 @@ class SSEService {
         }
 
         this.eventSource = new EventSource(
-            "http://localhost:5000/api/stream"
+            "http://localhost:8000/api/stream"
         );
 
         this.eventSource.onmessage = (event) => {
