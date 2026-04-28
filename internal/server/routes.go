@@ -14,6 +14,8 @@ import (
 	"energy-monitor-server/internal/model/user"
 	"energy-monitor-server/internal/sse"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -88,13 +90,38 @@ func (s *Server) RegisterRoutes(
 }
 
 func SPAHandler(staticPath string) http.Handler {
+	// If VITE_DEV_SERVER_URL is set, proxy frontend requests to Vite
+	if viteURL := os.Getenv("VITE_DEV_SERVER_URL"); viteURL != "" {
+		target, err := url.Parse(viteURL)
+		if err == nil {
+			proxy := httputil.NewSingleHostReverseProxy(target)
+
+			originalDirector := proxy.Director
+			proxy.Director = func(req *http.Request) {
+				originalDirector(req)
+
+				// Preserve original host if you want Vite to see its own host instead:
+				req.Host = target.Host
+
+				// Optional forwarded headers
+				req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
+				req.Header.Set("X-Forwarded-Proto", "http")
+			}
+
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				proxy.ServeHTTP(w, r)
+			})
+		}
+	}
+
+	// Production static serving
 	fs := http.FileServer(http.Dir(staticPath))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Join(staticPath, r.URL.Path)
+		path := filepath.Join(staticPath, filepath.Clean(r.URL.Path))
 
-		_, err := os.Stat(path)
-		if os.IsNotExist(err) {
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) || (err == nil && info.IsDir()) {
 			http.ServeFile(w, r, filepath.Join(staticPath, "index.html"))
 			return
 		}
