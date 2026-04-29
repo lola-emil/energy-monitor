@@ -3,12 +3,26 @@ package energyreading
 import (
 	"context"
 	"energy-monitor-server/internal/model/energyreading"
+	"energy-monitor-server/internal/model/setting"
 	"energy-monitor-server/internal/services"
 )
 
 type ReadingService struct {
-	repo        energyreading.ReadingRepository
-	alertEngine services.AlertEngine
+	repo         energyreading.ReadingRepository
+	settingsRepo setting.SettingsRepository
+	alertEngine  *services.AlertEngine
+}
+
+func NewReadingService(
+	repo energyreading.ReadingRepository,
+	settingsRepo setting.SettingsRepository,
+	alertEngine *services.AlertEngine,
+) *ReadingService {
+	return &ReadingService{
+		repo:         repo,
+		settingsRepo: settingsRepo,
+		alertEngine:  alertEngine,
+	}
 }
 
 func (s *ReadingService) Create(
@@ -23,4 +37,34 @@ func (s *ReadingService) Create(
 	_ = s.repo.UpdateApplianceLastReading(ctx, reading.ApplianceID)
 
 	return s.alertEngine.ProcessReading(ctx, userID, reading)
+}
+
+func (s *ReadingService) GetSummary(
+	ctx context.Context,
+	userID int64,
+) (*energyreading.ReadingSummary, error) {
+	summary, err := s.repo.GetSummary(
+		ctx,
+		userID,
+		nil,
+		nil,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	settings, err := s.settingsRepo.GetByUserID(
+		ctx,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	summary.EstimatedCost =
+		(summary.TotalEnergyKWh * settings.RatePerKWh) +
+			settings.FixedMonthlyCharge
+
+	return summary, nil
 }

@@ -34,6 +34,16 @@ type ApplianceRepository interface {
 		ctx context.Context,
 		deviceCode string,
 	) (*Appliance, error)
+
+	GetOfflineCandidates(
+		ctx context.Context,
+		offlineMinutes int,
+	) ([]Appliance, error)
+
+	MarkOffline(
+		ctx context.Context,
+		applianceID int64,
+	) error
 }
 
 func NewApplianceRepo(db *sqlx.DB) ApplianceRepository {
@@ -219,4 +229,85 @@ func (r *applianceRepo) UpdateLastReading(
 	}
 
 	return nil
+}
+
+func (r *applianceRepo) GetOfflineCandidates(
+	ctx context.Context,
+	offlineMinutes int,
+) ([]Appliance, error) {
+	query := `
+		SELECT
+			id,
+			user_id,
+			name,
+			location,
+			device_code,
+			status,
+			last_reading,
+			created_at,
+			updated_at
+		FROM appliances
+		WHERE
+			last_reading IS NOT NULL
+			AND last_reading < NOW() - ($1 * INTERVAL '1 minute')
+			AND status != $2
+	`
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		query,
+		offlineMinutes,
+		ApplianceStatusOffline,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var appliances []Appliance
+
+	for rows.Next() {
+		var a Appliance
+
+		err := rows.Scan(
+			&a.ID,
+			&a.UserID,
+			&a.Name,
+			&a.Location,
+			&a.DeviceCode,
+			&a.Status,
+			&a.LastReading,
+			&a.CreatedAt,
+			&a.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		appliances = append(appliances, a)
+	}
+
+	return appliances, nil
+}
+
+func (r *applianceRepo) MarkOffline(
+	ctx context.Context,
+	applianceID int64,
+) error {
+	query := `
+		UPDATE appliances
+		SET
+			status = $1,
+			updated_at = NOW()
+		WHERE id = $2
+	`
+
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		ApplianceStatusOffline,
+		applianceID,
+	)
+
+	return err
 }

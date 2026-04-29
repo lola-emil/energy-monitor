@@ -44,47 +44,59 @@ func (e *Evaluator) Evaluate(
 	log.Printf("Reading: %+v\n", r)
 
 	// Over Voltage
-	if settings.EnableVoltageAlerts &&
-		r.Voltage > settings.OverVoltageThreshold {
+	if settings.EnableVoltageAlerts {
+		// Over Voltage
+		if r.Voltage > settings.OverVoltageThreshold {
+			e.createAlert(
+				ctx,
+				applianceID,
+				alert.AlertTypeOverVoltage,
+				alert.AlertSeverityHigh,
+				"Over voltage detected",
+			)
+		} else {
+			e.alertRepo.ResolveActiveAlert(
+				ctx,
+				applianceID,
+				alert.AlertTypeOverVoltage,
+			)
+		}
 
-		e.createAlert(
-			ctx,
-			applianceID,
-			alert.AlertTypeOverVoltage,
-			alert.AlertSeverityHigh,
-			"Over voltage detected",
-		)
-	}
-
-	// Under Voltage
-	if settings.EnableVoltageAlerts &&
-		r.Voltage < settings.UnderVoltageThreshold {
-
-		e.createAlert(
-			ctx,
-			applianceID,
-			alert.AlertTypeUnderVoltage,
-			alert.AlertSeverityMedium,
-			"Under voltage detected",
-		)
-
-		log.Println("Under voltage detected")
-
+		// Under Voltage
+		if r.Voltage < settings.UnderVoltageThreshold {
+			e.createAlert(
+				ctx,
+				applianceID,
+				alert.AlertTypeUnderVoltage,
+				alert.AlertSeverityMedium,
+				"Under voltage detected",
+			)
+		} else {
+			e.alertRepo.ResolveActiveAlert(
+				ctx,
+				applianceID,
+				alert.AlertTypeUnderVoltage,
+			)
+		}
 	}
 
 	// Over Current
-	if settings.EnableCurrentAlerts &&
-		r.Current > settings.OverCurrentThreshold {
-
-		e.createAlert(
-			ctx,
-			applianceID,
-			alert.AlertTypeOverCurrent,
-			alert.AlertSeverityHigh,
-			"Over current detected",
-		)
-
-		log.Println("Over current detected")
+	if settings.EnableCurrentAlerts {
+		if r.Current > settings.OverCurrentThreshold {
+			e.createAlert(
+				ctx,
+				applianceID,
+				alert.AlertTypeOverCurrent,
+				alert.AlertSeverityHigh,
+				"Over current detected",
+			)
+		} else {
+			e.alertRepo.ResolveActiveAlert(
+				ctx,
+				applianceID,
+				alert.AlertTypeOverCurrent,
+			)
+		}
 	}
 }
 
@@ -95,7 +107,22 @@ func (e *Evaluator) createAlert(
 	severity alert.AlertSeverity,
 	message string,
 ) {
-	err := e.alertRepo.Create(ctx, &alert.Alert{
+	exists, err := e.alertRepo.HasRecentUnresolved(
+		ctx,
+		applianceID,
+		alertType,
+		10,
+	)
+	if err != nil {
+		log.Println("Alert dedupe check failed:", err)
+		return
+	}
+
+	if exists {
+		return
+	}
+
+	err = e.alertRepo.Create(ctx, &alert.Alert{
 		ApplianceID: &applianceID,
 		Type:        alertType,
 		Severity:    severity,

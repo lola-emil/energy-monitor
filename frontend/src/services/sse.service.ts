@@ -20,8 +20,10 @@ class SSEService {
             this.eventSource.close();
         }
 
+        const API_URL = import.meta.env.VITE_API_URL;
+
         this.eventSource = new EventSource(
-            "http://localhost:8000/api/stream"
+            `${API_URL}/stream`
         );
 
         this.eventSource.onmessage = (event) => {

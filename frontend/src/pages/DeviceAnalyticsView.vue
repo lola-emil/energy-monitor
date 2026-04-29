@@ -337,7 +337,7 @@ onMounted(async () => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-16" />
-                            <span v-else>{{ voltage }} V</span>
+                            <span v-else>{{ voltage ?? "0.00" }} V</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Instant RMS voltage at this appliance’s connection point.
@@ -354,7 +354,7 @@ onMounted(async () => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-16" />
-                            <span v-else>{{ current }} A</span>
+                            <span v-else>{{ current ?? "0.00" }} A</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Instant load current drawn by this appliance.
@@ -371,7 +371,7 @@ onMounted(async () => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>{{ power }} W</span>
+                            <span v-else>{{ power ?? "0.00" }} W</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Instant active power consumption of this appliance.
@@ -388,7 +388,7 @@ onMounted(async () => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>{{ frequency }} Hz</span>
+                            <span v-else>{{ frequency ?? "0.00" }} Hz</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Measured line frequency at the monitored point.
@@ -405,7 +405,7 @@ onMounted(async () => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ todayEnergy }} kWh</span>
+                            <span v-else>{{ todayEnergy ?? "0.00" }} kWh</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Energy consumed by this appliance today.

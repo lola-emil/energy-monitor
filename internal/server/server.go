@@ -17,6 +17,7 @@ import (
 	"energy-monitor-server/internal/model/setting"
 	"energy-monitor-server/internal/model/user"
 	"energy-monitor-server/internal/mqtt"
+	"energy-monitor-server/internal/offline"
 	"energy-monitor-server/internal/sse"
 )
 
@@ -57,6 +58,9 @@ func NewServer() *http.Server {
 	)
 
 	go mqtt.StartSubscriber(mqttHandler)
+
+	// Offline Checker
+	offline.StartOfflineChecker(applianceRepo, alertRepo)
 
 	// Declare Server config
 	server := &http.Server{

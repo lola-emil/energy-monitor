@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	alertapi "energy-monitor-server/internal/api/alert"
 	applianceapi "energy-monitor-server/internal/api/appliance"
+	energyreadingapi "energy-monitor-server/internal/api/energyreading"
 	"energy-monitor-server/internal/api/settings"
 	"energy-monitor-server/internal/auth"
 	appmiddleware "energy-monitor-server/internal/middleware"
@@ -12,6 +13,7 @@ import (
 	"energy-monitor-server/internal/model/energyreading"
 	"energy-monitor-server/internal/model/setting"
 	"energy-monitor-server/internal/model/user"
+	"energy-monitor-server/internal/services"
 	"energy-monitor-server/internal/sse"
 	"net/http"
 	"net/http/httputil"
@@ -44,17 +46,28 @@ func (s *Server) RegisterRoutes(
 		MaxAge:           300,
 	}))
 
+	alertEngine := services.NewAlertEngine(
+		settingsRepo,
+		alertRepo,
+	)
+
 	// Mga service
 	authService := auth.NewAuthService(userRepo)
 	applianceService := applianceapi.NewApplianceService(applianceRepo)
 	alertService := alertapi.NewAlertService(alertRepo)
 	settingService := settings.NewSettingService(settingsRepo)
+	readingService := energyreadingapi.NewReadingService(
+		readingRepo,
+		settingsRepo,
+		alertEngine,
+	)
 
 	// Mga handlers
 	authHandler := auth.NewAuthHandler(authService)
 	applianceHandler := applianceapi.NewApplianceHandler(applianceService)
 	alertHandler := alertapi.NewAlertHandler(alertService)
 	settingsHandler := settings.NewSettingHandler(settingService)
+	readingHandler := energyreadingapi.NewReadingHandler(readingService)
 
 	r.Route("/api", func(r chi.Router) {
 
@@ -73,6 +86,10 @@ func (s *Server) RegisterRoutes(
 
 			r.Route("/alerts", func(r chi.Router) {
 				alertapi.RegisterRoutes(r, alertHandler)
+			})
+
+			r.Route("/readings", func(r chi.Router) {
+				energyreadingapi.RegisterRoutes(r, readingHandler)
 			})
 
 			r.Route("/settings", func(r chi.Router) {

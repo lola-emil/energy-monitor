@@ -12,6 +12,16 @@ type AlertEngine struct {
 	alertRepo    alert.AlertRepository
 }
 
+func NewAlertEngine(
+	settingsRepo setting.SettingsRepository,
+	alertRepo alert.AlertRepository,
+) *AlertEngine {
+	return &AlertEngine{
+		settingsRepo: settingsRepo,
+		alertRepo:    alertRepo,
+	}
+}
+
 func (s *AlertEngine) ProcessReading(
 	ctx context.Context,
 	userID int64,

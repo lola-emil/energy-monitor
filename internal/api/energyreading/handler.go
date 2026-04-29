@@ -11,6 +11,10 @@ type ReadingHandler struct {
 	service *ReadingService
 }
 
+func NewReadingHandler(service *ReadingService) *ReadingHandler {
+	return &ReadingHandler{service: service}
+}
+
 func (h *ReadingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req energyreading.EnergyReading
 
@@ -27,4 +31,21 @@ func (h *ReadingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(req)
+}
+func (h *ReadingHandler) GetSummary(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userID := httputil.GetUserID(r)
+
+	summary, err := h.service.GetSummary(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(summary)
 }

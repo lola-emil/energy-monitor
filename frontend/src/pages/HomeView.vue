@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-
+import {
+    readingService,
+    type ReadingSummary,
+} from "@/services/reading.service"
 // shadcn-vue components (adjust imports to your setup)
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,7 +39,6 @@ use([
     LegendComponent,
 ])
 
-// Example icon components (you can replace with lucide-vue or similar)
 
 const monthlyChartData = ref([
     { label: '1', value: 32 },
@@ -79,6 +81,28 @@ const recentAlerts = ref([
     { id: 1, time: '2026-04-23 10:30', message: 'Voltage exceeded 250 V', severity: 'high' },
     { id: 2, time: '2026-04-22 16:05', message: 'Device Office Load went offline', severity: 'medium' }
 ])
+
+const summary = ref<ReadingSummary>({
+    total_energy_kwh: 0,
+    estimated_cost: 0,
+    peak_power: 0,
+    active_devices: 0,
+    active_alerts: 0,
+})
+
+const fetchSummary = async () => {
+    try {
+        isLoading.value = true
+
+        const data = await readingService.getSummary()
+        summary.value = data
+    } catch (error) {
+        console.error("Failed to load summary:", error)
+    } finally {
+        isLoading.value = false
+    }
+}
+
 
 const estimatedBill = computed(() => (totalEnergyKwh.value * ratePerKwh.value).toFixed(2))
 
@@ -201,10 +225,7 @@ const chartOptions = computed(() => {
 })
 
 onMounted(() => {
-    // simulate loading
-    setTimeout(() => {
-        isLoading.value = false
-    }, 600)
+    fetchSummary()
 })
 </script>
 
@@ -252,7 +273,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ totalEnergyKwh }} kWh</span>
+                            <span v-else>{{ summary.total_energy_kwh }} kWh</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
                             Based on all active devices.
@@ -271,7 +292,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-28" />
-                            <span v-else>₱{{ estimatedBill }}</span>
+                            <span v-else>₱{{ summary.estimated_cost.toFixed(2) }}</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
                             Using rate of ₱{{ ratePerKwh }} per kWh (editable in Settings).
@@ -290,7 +311,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-10" />
-                            <span v-else>{{ activeDeviceCount }}</span>
+                            <span v-else>{{ summary.active_devices }}</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
                             Online out of {{ activeDevices.length }} total devices.
@@ -302,14 +323,14 @@ onMounted(() => {
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">
-                            Average Power Today
+                            Peak Power
                         </CardTitle>
                         <BoltIcon class="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>430 W</span>
+                            <span v-else>{{ summary.peak_power.toFixed(2) }} W</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
                             Simple mean of readings collected today.

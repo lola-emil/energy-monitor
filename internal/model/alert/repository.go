@@ -29,6 +29,19 @@ type AlertRepository interface {
 		applianceID int64,
 		alertType AlertType,
 	) (bool, error)
+
+	HasRecentUnresolved(
+		ctx context.Context,
+		applianceID int64,
+		alertType AlertType,
+		cooldownMinutes int,
+	) (bool, error)
+
+	ResolveActiveAlert(
+		ctx context.Context,
+		applianceID int64,
+		alertType AlertType,
+	) error
 }
 
 func NewAlertRepository(db *sqlx.DB) *alertRepo {
@@ -150,4 +163,60 @@ func (r *alertRepo) HasActiveAlert(
 	`, applianceID, alertType)
 
 	return exists, err
+}
+
+func (r *alertRepo) HasRecentUnresolved(
+	ctx context.Context,
+	applianceID int64,
+	alertType AlertType,
+	cooldownMinutes int,
+) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM alerts
+			WHERE
+				appliance_id = $1
+				AND type = $2
+				AND resolved_at IS NULL
+				AND triggered_at >= NOW() - ($3 * INTERVAL '1 minute')
+		)
+	`
+
+	var exists bool
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		applianceID,
+		alertType,
+		cooldownMinutes,
+	).Scan(&exists)
+
+	return exists, err
+}
+
+func (r *alertRepo) ResolveActiveAlert(
+	ctx context.Context,
+	applianceID int64,
+	alertType AlertType,
+) error {
+	query := `
+		UPDATE alerts
+		SET
+			resolved_at = NOW()
+		WHERE
+			appliance_id = $1
+			AND type = $2
+			AND resolved_at IS NULL
+	`
+
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		applianceID,
+		alertType,
+	)
+
+	return err
 }

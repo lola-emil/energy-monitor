@@ -16,8 +16,8 @@ type EnergyReading struct {
 
 type ReadingSummary struct {
 	TotalEnergyKWh float64 `json:"total_energy_kwh"`
-	AvgVoltage     float64 `json:"avg_voltage"`
-	AvgCurrent     float64 `json:"avg_current"`
-	AvgPower       float64 `json:"avg_power"`
 	EstimatedCost  float64 `json:"estimated_cost"`
+	PeakPower      float64 `json:"peak_power"`
+	ActiveDevices  int     `json:"active_devices"`
+	ActiveAlerts   int     `json:"active_alerts"`
 }

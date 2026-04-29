@@ -16,7 +16,13 @@ type readingRepo struct {
 type ReadingRepository interface {
 	Create(ctx context.Context, r *EnergyReading) error
 	List(ctx context.Context, userID int64, applianceID *int64, from, to *time.Time) ([]EnergyReading, error)
-	GetSummary(ctx context.Context, userID int64, applianceID *int64, from, to *time.Time) (*ReadingSummary, error)
+	GetSummary(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		from,
+		to *time.Time,
+	) (*ReadingSummary, error)
 	UpdateApplianceLastReading(
 		ctx context.Context,
 		applianceID int64,
@@ -96,27 +102,51 @@ func (r *readingRepo) GetSummary(
 	ctx context.Context,
 	userID int64,
 	applianceID *int64,
-	from, to *time.Time,
+	from,
+	to *time.Time,
 ) (*ReadingSummary, error) {
-	var s ReadingSummary
-
 	query := `
 		SELECT
-			COALESCE(SUM(er.energy_kwh), 0) as total_energy_kwh,
-			COALESCE(AVG(er.voltage), 0) as avg_voltage,
-			COALESCE(AVG(er.current), 0) as avg_current,
-			COALESCE(AVG(er.power), 0) as avg_power
+			COALESCE(SUM(er.energy_kwh), 0) AS total_energy_kwh,
+			COALESCE(MAX(er.power), 0) AS peak_power,
+			(
+				SELECT COUNT(*)
+				FROM appliances a
+				WHERE
+					a.user_id = $1
+					AND a.status = 'online'
+			) AS active_devices,
+			(
+				SELECT COUNT(*)
+				FROM alerts al
+				JOIN appliances a ON a.id = al.appliance_id
+				WHERE
+					a.user_id = $1
+					AND al.resolved_at IS NULL
+			) AS active_alerts
 		FROM energy_readings er
-		JOIN appliances a ON er.appliance_id = a.id
-		WHERE a.user_id = $1
+		JOIN appliances a ON a.id = er.appliance_id
+		WHERE
+			a.user_id = $1
 	`
 
-	err := r.db.GetContext(ctx, &s, query, userID)
+	var summary ReadingSummary
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		userID,
+	).Scan(
+		&summary.TotalEnergyKWh,
+		&summary.PeakPower,
+		&summary.ActiveDevices,
+		&summary.ActiveAlerts,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	return &s, nil
+	return &summary, nil
 }
 
 func (r *readingRepo) UpdateApplianceLastReading(
