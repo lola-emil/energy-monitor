@@ -68,3 +68,7 @@ func (s *ReadingService) GetSummary(
 
 	return summary, nil
 }
+
+func (s *ReadingService) GetEnergyChart(ctx context.Context, userID int64) ([]energyreading.ChartPoint, error) {
+	return s.repo.GetEnergyChart(ctx, userID, "monthly")
+}

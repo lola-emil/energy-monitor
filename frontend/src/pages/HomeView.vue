@@ -2,15 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import {
     readingService,
+    type ChartPoint,
     type ReadingSummary,
 } from "@/services/reading.service"
-// shadcn-vue components (adjust imports to your setup)
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { watch } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 
@@ -68,6 +67,9 @@ const isLoading = ref(true)
 const now = ref(new Date())
 const period = ref<'month' | 'day'>('month')
 
+const isLoadingChart = ref(false)
+const chartData = ref<ChartPoint[]>([])
+
 const totalEnergyKwh = ref(1284)       // this month
 const ratePerKwh = ref(10.25)         // from settings API
 const activeDevices = ref([
@@ -90,6 +92,8 @@ const summary = ref<ReadingSummary>({
     active_alerts: 0,
 })
 
+const activeChartData = computed(() => chartData.value)
+
 const fetchSummary = async () => {
     try {
         isLoading.value = true
@@ -103,22 +107,29 @@ const fetchSummary = async () => {
     }
 }
 
+const fetchChart = async () => {
+    try {
+        isLoadingChart.value = true
 
-const estimatedBill = computed(() => (totalEnergyKwh.value * ratePerKwh.value).toFixed(2))
+        const data = await readingService.getChart()
+        chartData.value = data
 
-const activeDeviceCount = computed(
-    () => activeDevices.value.filter(d => d.status === 'online').length
-)
+    } catch (err) {
+        console.error("Failed to load chart:", err)
+    } finally {
+        isLoadingChart.value = false
+    }
+}
 
 const lastUpdatedText = computed(() =>
     now.value.toLocaleString(undefined, { hour12: false })
 )
 
-const activeChartData = computed(() =>
-    period.value === 'day'
-        ? dailyChartData.value
-        : monthlyChartData.value
-)
+// const activeChartData = computed(() =>
+//     period.value === 'day'
+//         ? dailyChartData.value
+//         : monthlyChartData.value
+// )
 
 const chartSeriesName = computed(() =>
     period.value === 'day'
@@ -226,6 +237,7 @@ const chartOptions = computed(() => {
 
 onMounted(() => {
     fetchSummary()
+    fetchChart()
 })
 </script>
 
@@ -233,27 +245,29 @@ onMounted(() => {
     <div class="px-5 my-5">
         <div class="flex flex-col gap-6">
             <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div>
+            <div class="flex-col md:flex-row flex md:items-center justify-between">
+                <div class="">
                     <h1 class="text-2xl font-semibold tracking-tight">Overview</h1>
                     <p class="text-sm text-muted-foreground">
                         Quick summary of your energy usage and devices.
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>Period:</span>
-                    <div class="inline-flex rounded-md border bg-background p-0.5">
-                        <Button variant="ghost" size="sm"
-                            :class="period === 'day' ? 'bg-primary text-primary-foreground' : ''"
-                            @click="period = 'day'">
-                            Today
-                        </Button>
-                        <Button variant="ghost" size="sm"
-                            :class="period === 'month' ? 'bg-primary text-primary-foreground' : ''"
-                            @click="period = 'month'">
-                            This Month
-                        </Button>
+                <div class="flex-col md:flex-row md:flex hidden items-center lg:gap-3 text-xs text-muted-foreground">
+                    <div class="flex items-center gap-3">
+                        <span>Period:</span>
+                        <div class="inline-flex rounded-md border bg-background p-0.5">
+                            <Button variant="ghost" size="sm"
+                                :class="period === 'day' ? 'bg-primary text-primary-foreground' : ''"
+                                @click="period = 'day'">
+                                Today
+                            </Button>
+                            <Button variant="ghost" size="sm"
+                                :class="period === 'month' ? 'bg-primary text-primary-foreground' : ''"
+                                @click="period = 'month'">
+                                This Month
+                            </Button>
+                        </div>
                     </div>
                     <Separator orientation="vertical" class="h-6" />
                     <span>Last updated: {{ lastUpdatedText }}</span>
@@ -273,7 +287,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ summary.total_energy_kwh }} kWh</span>
+                            <span v-else>{{ summary.total_energy_kwh.toFixed(2) }} kWh</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
                             Based on all active devices.

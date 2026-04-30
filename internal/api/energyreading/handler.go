@@ -49,3 +49,21 @@ func (h *ReadingHandler) GetSummary(
 
 	json.NewEncoder(w).Encode(summary)
 }
+
+func (h *ReadingHandler) GetChart(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userID := httputil.GetUserID(r)
+
+	data, err := h.service.GetEnergyChart(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}

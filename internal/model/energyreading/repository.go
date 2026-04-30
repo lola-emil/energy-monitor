@@ -27,6 +27,12 @@ type ReadingRepository interface {
 		ctx context.Context,
 		applianceID int64,
 	) error
+
+	GetEnergyChart(
+		ctx context.Context,
+		userID int64,
+		rangeType string, // "today", "7d", "month"
+	) ([]ChartPoint, error)
 }
 
 func NewReadingRepository(db *sqlx.DB) ReadingRepository {
@@ -107,27 +113,38 @@ func (r *readingRepo) GetSummary(
 ) (*ReadingSummary, error) {
 	query := `
 		SELECT
-			COALESCE(SUM(er.energy_kwh), 0) AS total_energy_kwh,
-			COALESCE(MAX(er.power), 0) AS peak_power,
+			COALESCE(SUM(
+				(EXTRACT(EPOCH FROM (ts - prev_ts)) * power) / 3600000.0
+			), 0) AS total_energy_kwh,
+
+			COALESCE(MAX(power), 0) AS peak_power,
+
 			(
 				SELECT COUNT(*)
-				FROM appliances a
-				WHERE
-					a.user_id = $1
-					AND a.status = 'online'
+				FROM appliances
+				WHERE user_id = $1 AND status = 'online'
 			) AS active_devices,
+
 			(
 				SELECT COUNT(*)
 				FROM alerts al
 				JOIN appliances a ON a.id = al.appliance_id
-				WHERE
-					a.user_id = $1
-					AND al.resolved_at IS NULL
+				WHERE a.user_id = $1 AND al.resolved_at IS NULL
 			) AS active_alerts
-		FROM energy_readings er
-		JOIN appliances a ON a.id = er.appliance_id
-		WHERE
-			a.user_id = $1
+
+		FROM (
+			SELECT
+				er.ts,
+				er.power,
+				LAG(er.ts) OVER (
+					PARTITION BY er.appliance_id
+					ORDER BY er.ts
+				) AS prev_ts
+			FROM energy_readings er
+			JOIN appliances a ON a.id = er.appliance_id
+			WHERE a.user_id = $1
+		) t
+		WHERE prev_ts IS NOT NULL;
 	`
 
 	var summary ReadingSummary
@@ -182,4 +199,55 @@ func (r *readingRepo) UpdateApplianceLastReading(
 	}
 
 	return nil
+}
+
+func (r *readingRepo) GetEnergyChart(
+	ctx context.Context,
+	userID int64,
+	rangeType string,
+) ([]ChartPoint, error) {
+
+	query := `
+		SELECT
+			DATE(t.ts) AS label,
+			SUM(
+				(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
+			) AS value
+		FROM (
+			SELECT
+				er.ts,
+				er.power,
+				er.appliance_id,
+				LAG(er.ts) OVER (
+					PARTITION BY er.appliance_id
+					ORDER BY er.ts
+				) AS prev_ts
+			FROM energy_readings er
+			JOIN appliances a ON a.id = er.appliance_id
+			WHERE
+				a.user_id = $1
+				AND er.ts >= NOW() - INTERVAL '30 days'
+		) t
+		WHERE t.prev_ts IS NOT NULL
+		GROUP BY DATE(t.ts)
+		ORDER BY DATE(t.ts);
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ChartPoint
+
+	for rows.Next() {
+		var p ChartPoint
+		if err := rows.Scan(&p.Label, &p.Value); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+
+	return result, nil
 }

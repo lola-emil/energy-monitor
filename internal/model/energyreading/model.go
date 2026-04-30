@@ -21,3 +21,8 @@ type ReadingSummary struct {
 	ActiveDevices  int     `json:"active_devices"`
 	ActiveAlerts   int     `json:"active_alerts"`
 }
+
+type ChartPoint struct {
+	Label string  `json:"label"`
+	Value float64 `json:"value"`
+}
