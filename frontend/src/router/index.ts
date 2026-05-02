@@ -23,7 +23,7 @@ const router = createRouter({
       children: [
         {
           path: "",
-          component: () => import("@/pages/HomeView.vue")
+          component: () => import("@/pages/Overview.vue")
         },
         {
           path: "/settings",

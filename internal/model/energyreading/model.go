@@ -19,6 +19,8 @@ type ReadingSummary struct {
 	EstimatedCost  float64 `json:"estimated_cost"`
 	PeakPower      float64 `json:"peak_power"`
 	ActiveDevices  int     `json:"active_devices"`
+	DeviceCount    int     `json:"device_count"`
+	BillingRate    float64 `json:"billing_rate"`
 	ActiveAlerts   int     `json:"active_alerts"`
 }
 

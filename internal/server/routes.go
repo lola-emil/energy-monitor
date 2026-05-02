@@ -6,13 +6,14 @@ import (
 	applianceapi "energy-monitor-server/internal/api/appliance"
 	energyreadingapi "energy-monitor-server/internal/api/energyreading"
 	"energy-monitor-server/internal/api/settings"
+	"energy-monitor-server/internal/api/user"
 	"energy-monitor-server/internal/auth"
 	appmiddleware "energy-monitor-server/internal/middleware"
 	"energy-monitor-server/internal/model/alert"
 	"energy-monitor-server/internal/model/appliance"
 	"energy-monitor-server/internal/model/energyreading"
 	"energy-monitor-server/internal/model/setting"
-	"energy-monitor-server/internal/model/user"
+	userRepo "energy-monitor-server/internal/model/user"
 	"energy-monitor-server/internal/services"
 	"energy-monitor-server/internal/sse"
 	"net/http"
@@ -27,7 +28,7 @@ import (
 )
 
 func (s *Server) RegisterRoutes(
-	userRepo user.UserRepository,
+	userRepo userRepo.UserRepository,
 	applianceRepo appliance.ApplianceRepository,
 	alertRepo alert.AlertRepository,
 	settingsRepo setting.SettingsRepository,
@@ -61,6 +62,7 @@ func (s *Server) RegisterRoutes(
 		settingsRepo,
 		alertEngine,
 	)
+	userService := user.NewUserSerivce(userRepo)
 
 	// Mga handlers
 	authHandler := auth.NewAuthHandler(authService)
@@ -68,6 +70,7 @@ func (s *Server) RegisterRoutes(
 	alertHandler := alertapi.NewAlertHandler(alertService)
 	settingsHandler := settings.NewSettingHandler(settingService)
 	readingHandler := energyreadingapi.NewReadingHandler(readingService)
+	userHandler := user.NewUserHandler(userService)
 
 	r.Route("/api", func(r chi.Router) {
 
@@ -94,6 +97,10 @@ func (s *Server) RegisterRoutes(
 
 			r.Route("/settings", func(r chi.Router) {
 				settings.RegisterRoutes(r, settingsHandler)
+			})
+
+			r.Route("/user", func(r chi.Router) {
+				user.RegisterRoutes(r, userHandler)
 			})
 		})
 	})

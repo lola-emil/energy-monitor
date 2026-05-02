@@ -11,6 +11,10 @@ type UserService struct {
 	repo userModel.UserRepository
 }
 
+func NewUserSerivce(repo userModel.UserRepository) *UserService {
+	return &UserService{repo: repo}
+}
+
 func (s *UserService) UpdateProfile(
 	ctx context.Context,
 	userID int64,

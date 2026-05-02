@@ -127,6 +127,17 @@ func (r *readingRepo) GetSummary(
 
 			(
 				SELECT COUNT(*)
+				FROM appliances WHERE user_id = $1
+			) as device_count,
+
+			(
+				SELECT rate_per_kwh
+				FROM settings
+				WHERE user_id = $1
+			) AS billing_rate,
+
+			(
+				SELECT COUNT(*)
 				FROM alerts al
 				JOIN appliances a ON a.id = al.appliance_id
 				WHERE a.user_id = $1 AND al.resolved_at IS NULL
@@ -157,6 +168,8 @@ func (r *readingRepo) GetSummary(
 		&summary.TotalEnergyKWh,
 		&summary.PeakPower,
 		&summary.ActiveDevices,
+		&summary.DeviceCount,
+		&summary.BillingRate,
 		&summary.ActiveAlerts,
 	)
 	if err != nil {

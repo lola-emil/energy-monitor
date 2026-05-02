@@ -1,3 +1,44 @@
+<script setup lang="ts">
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent, SidebarHeader,
+    SidebarInset,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarProvider,
+    SidebarRail,
+    SidebarTrigger
+} from '@/components/ui/sidebar';
+import { RouterView } from 'vue-router';
+import { MonitorSmartphone, LayoutDashboard, ChartLine, Settings } from "lucide-vue-next";
+import NavUser from '@/components/NavUser.vue';
+import Logo from '@/components/Logo.vue';
+import { onMounted, reactive, ref } from 'vue';
+import { userService } from '@/services/user.service';
+import type { User } from '@/types/user';
+
+const data = reactive({
+    user: {
+        name: "",
+        email: "",
+        avatar: "/avatars/shadcn.jpg",
+    },
+})
+
+onMounted(() => {
+    userService.getProfile().then(response => {
+        data.user.name = response.name;
+        data.user.email = response.username;
+    })
+});
+
+</script>
+
+
 <template>
 
     <SidebarProvider>
@@ -79,36 +120,3 @@
         </SidebarInset>
     </SidebarProvider>
 </template>
-
-
-<script setup lang="ts">
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent, SidebarHeader,
-    SidebarInset,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-    SidebarRail,
-    SidebarTrigger
-} from '@/components/ui/sidebar';
-import { RouterView } from 'vue-router';
-import { MonitorSmartphone, LayoutDashboard, ChartLine, Settings } from "lucide-vue-next";
-import NavUser from '@/components/NavUser.vue';
-import { useModalStore } from '@/stores/modal';
-import { GalleryVerticalEnd } from "lucide-vue-next";
-import Logo from '@/components/Logo.vue';
-
-const data = {
-    user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
-    },
-}
-
-</script>

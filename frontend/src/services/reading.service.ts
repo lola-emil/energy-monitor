@@ -5,6 +5,8 @@ export interface ReadingSummary {
     estimated_cost: number
     peak_power: number
     active_devices: number
+    device_count: number
+    billing_rate: number
     active_alerts: number
 }
 

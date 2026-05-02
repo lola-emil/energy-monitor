@@ -17,7 +17,7 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar"
 import { useRouter } from "vue-router"
-import { LogOut } from "lucide-vue-next"
+import { LogOut, User as UserIcon } from "lucide-vue-next"
 
 interface User {
     name: string
@@ -79,6 +79,12 @@ const handleLogout = () => {
                             </div>
                         </div>
                     </DropdownMenuLabel>
+                    <DropdownMenuItem as-child>
+                        <RouterLink to="/account-settings">
+                            <UserIcon />
+                            Account Settings
+                        </RouterLink>
+                    </DropdownMenuItem>
 
                     <DropdownMenuItem @click="handleLogout">
                         <LogOut />

@@ -11,6 +11,12 @@ type UserHandler struct {
 	service *UserService
 }
 
+func NewUserHandler(service *UserService) *UserHandler {
+	return &UserHandler{
+		service: service,
+	}
+}
+
 func (h *UserHandler) UpdateProfile(
 	w http.ResponseWriter,
 	r *http.Request,

@@ -39,29 +39,7 @@ use([
 ])
 
 
-const monthlyChartData = ref([
-    { label: '1', value: 32 },
-    { label: '5', value: 28 },
-    { label: '10', value: 41 },
-    { label: '15', value: 35 },
-    { label: '20', value: 48 },
-    { label: '25', value: 39 },
-    { label: '30', value: 44 },
-])
-
-const dailyChartData = ref([
-    { label: '00:00', value: 120 },
-    { label: '04:00', value: 90 },
-    { label: '08:00', value: 310 },
-    { label: '12:00', value: 430 },
-    { label: '16:00', value: 390 },
-    { label: '20:00', value: 280 },
-    { label: '23:00', value: 160 },
-])
-
 const { colors } = useThemeColors()
-
-// ---- Mock data (replace with API calls) ----
 const isLoading = ref(true)
 
 const now = ref(new Date())
@@ -70,15 +48,12 @@ const period = ref<'month' | 'day'>('month')
 const isLoadingChart = ref(false)
 const chartData = ref<ChartPoint[]>([])
 
-const totalEnergyKwh = ref(1284)       // this month
-const ratePerKwh = ref(10.25)         // from settings API
 const activeDevices = ref([
     { id: 1, name: 'Main Meter', status: 'online', power: 430 },
     { id: 2, name: 'Office Load', status: 'online', power: 210 },
     { id: 3, name: 'Spare Meter', status: 'offline', power: 0 }
 ])
 
-// simple sample alerts
 const recentAlerts = ref([
     { id: 1, time: '2026-04-23 10:30', message: 'Voltage exceeded 250 V', severity: 'high' },
     { id: 2, time: '2026-04-22 16:05', message: 'Device Office Load went offline', severity: 'medium' }
@@ -89,6 +64,8 @@ const summary = ref<ReadingSummary>({
     estimated_cost: 0,
     peak_power: 0,
     active_devices: 0,
+    device_count: 0,
+    billing_rate: 0,
     active_alerts: 0,
 })
 
@@ -124,12 +101,6 @@ const fetchChart = async () => {
 const lastUpdatedText = computed(() =>
     now.value.toLocaleString(undefined, { hour12: false })
 )
-
-// const activeChartData = computed(() =>
-//     period.value === 'day'
-//         ? dailyChartData.value
-//         : monthlyChartData.value
-// )
 
 const chartSeriesName = computed(() =>
     period.value === 'day'
@@ -309,7 +280,7 @@ onMounted(() => {
                             <span v-else>₱{{ summary.estimated_cost.toFixed(2) }}</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
-                            Using rate of ₱{{ ratePerKwh }} per kWh (editable in Settings).
+                            Using rate of ₱{{ summary.billing_rate }} per kWh (editable in Settings).
                         </p>
                     </CardContent>
                 </Card>
@@ -328,7 +299,7 @@ onMounted(() => {
                             <span v-else>{{ summary.active_devices }}</span>
                         </p>
                         <p class="text-xs text-muted-foreground mt-1">
-                            Online out of {{ activeDevices.length }} total devices.
+                            Online out of {{ summary.device_count }} total devices.
                         </p>
                     </CardContent>
                 </Card>

@@ -22,9 +22,6 @@ const form = reactive({
 
 const fetchProfile = async () => {
     try {
-        // Replace with actual API call
-        // const data = await userService.getProfile()
-        // form.username = data.username
 
         form.username = 'admin'
     } catch (error) {
@@ -49,13 +46,6 @@ const handleSave = async () => {
     try {
         isLoading.value = true
 
-        // Replace with actual API call
-        // await userService.updateCredentials({
-        //   username: form.username,
-        //   current_password: form.current_password,
-        //   new_password: form.new_password,
-        // })
-
         successMessage.value = 'Credentials updated successfully'
 
         form.current_password = ''
@@ -79,7 +69,7 @@ onMounted(() => {
     <div class="px-5 my-5">
         <div class="space-y-6">
             <div>
-                <h1 class="text-2xl font-semibold">User Configuration</h1>
+                <h1 class="text-2xl font-semibold">Account Settings</h1>
                 <p class="text-sm text-muted-foreground mt-1">
                     Update your username and password credentials.
                 </p>
