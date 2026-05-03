@@ -5,6 +5,7 @@ import (
 	"energy-monitor-server/internal/model/energyreading"
 	httputil "energy-monitor-server/internal/utils/http"
 	"net/http"
+	"strconv"
 )
 
 type ReadingHandler struct {
@@ -59,6 +60,43 @@ func (h *ReadingHandler) GetChart(
 	data, err := h.service.GetEnergyChart(
 		r.Context(),
 		userID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}
+
+func (h *ReadingHandler) GetAnalytics(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userID := httputil.GetUserID(r)
+
+	rangeType := r.URL.Query().Get("range")
+	if rangeType == "" {
+		rangeType = "today"
+	}
+
+	var applianceID *int64
+	idStr := r.URL.Query().Get("appliance_id")
+
+	if idStr != "" && idStr != "all" {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "invalid appliance_id", http.StatusBadRequest)
+			return
+		}
+		applianceID = &id
+	}
+
+	data, err := h.service.GetAnalytics(
+		r.Context(),
+		userID,
+		applianceID,
+		rangeType,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), 400)

@@ -17,6 +17,7 @@ func NewReadingService(
 	repo energyreading.ReadingRepository,
 	settingsRepo setting.SettingsRepository,
 	alertEngine *services.AlertEngine,
+
 ) *ReadingService {
 	return &ReadingService{
 		repo:         repo,
@@ -71,4 +72,58 @@ func (s *ReadingService) GetSummary(
 
 func (s *ReadingService) GetEnergyChart(ctx context.Context, userID int64) ([]energyreading.ChartPoint, error) {
 	return s.repo.GetEnergyChart(ctx, userID, "monthly")
+}
+
+func (s *ReadingService) GetAnalytics(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) (*energyreading.AnalyticsResponse, error) {
+
+	// 1. Summary
+	summary, err := s.repo.GetAnalyticsSummary(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Energy (timestamp-based integration)
+	energy, err := s.repo.GetAnalyticsEnergyChart(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// OPTIONAL: compute total energy for summary
+	var totalEnergy float64
+	for _, e := range energy {
+		totalEnergy += e.Value
+	}
+	summary.TotalEnergyKWh = totalEnergy
+
+	// 3. Voltage & Current
+	vc, err := s.repo.GetVoltageCurrentChart(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &energyreading.AnalyticsResponse{
+		Summary:        *summary,
+		Energy:         energy,
+		VoltageCurrent: vc,
+	}, nil
 }

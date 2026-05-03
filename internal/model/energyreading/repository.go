@@ -31,8 +31,29 @@ type ReadingRepository interface {
 	GetEnergyChart(
 		ctx context.Context,
 		userID int64,
-		rangeType string, // "today", "7d", "month"
+		rangeType string,
 	) ([]ChartPoint, error)
+
+	GetAnalyticsEnergyChart(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		rangeType string,
+	) ([]ChartPoint, error)
+
+	GetVoltageCurrentChart(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		rangeType string,
+	) ([]VoltageCurrentPoint, error)
+
+	GetAnalyticsSummary(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		rangeType string,
+	) (*AnalyticsSummary, error)
 }
 
 func NewReadingRepository(db *sqlx.DB) ReadingRepository {
@@ -263,4 +284,188 @@ func (r *readingRepo) GetEnergyChart(
 	}
 
 	return result, nil
+}
+
+func buildRangeQuery(rangeType string) (interval string, labelFormat string) {
+	switch rangeType {
+	case "today":
+		return "INTERVAL '1 day'", "HH24:00"
+	case "7d":
+		return "INTERVAL '7 days'", "YYYY-MM-DD"
+	case "month":
+		return "INTERVAL '30 days'", "YYYY-MM-DD"
+	default:
+		return "INTERVAL '1 day'", "HH24:00"
+	}
+}
+
+func (r *readingRepo) GetAnalyticsEnergyChart(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) ([]ChartPoint, error) {
+
+	interval, labelFormat := buildRangeQuery(rangeType)
+
+	query := fmt.Sprintf(`
+		SELECT
+			TO_CHAR(t.ts, '%s') AS label,
+			SUM(
+				(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
+			) AS value
+		FROM (
+			SELECT
+				er.ts,
+				er.power,
+				er.appliance_id,
+				LAG(er.ts) OVER (
+					PARTITION BY er.appliance_id
+					ORDER BY er.ts
+				) AS prev_ts
+			FROM energy_readings er
+			JOIN appliances a ON a.id = er.appliance_id
+			WHERE
+				a.user_id = $1
+				AND er.ts >= NOW() - %s
+				%s
+		) t
+		WHERE t.prev_ts IS NOT NULL
+		GROUP BY label
+		ORDER BY label;
+	`, labelFormat, interval, buildApplianceFilter(applianceID, 2))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ChartPoint
+
+	for rows.Next() {
+		var p ChartPoint
+		if err := rows.Scan(&p.Label, &p.Value); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+
+	return result, nil
+}
+
+func (r *readingRepo) GetVoltageCurrentChart(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) ([]VoltageCurrentPoint, error) {
+
+	interval, labelFormat := buildRangeQuery(rangeType)
+
+	query := fmt.Sprintf(`
+		SELECT
+			TO_CHAR(er.ts, '%s') AS label,
+			AVG(er.voltage) AS voltage,
+			AVG(er.current) AS current
+		FROM energy_readings er
+		JOIN appliances a ON a.id = er.appliance_id
+		WHERE
+			a.user_id = $1
+			AND er.ts >= NOW() - %s
+			%s
+		GROUP BY label
+		ORDER BY label;
+	`, labelFormat, interval, buildApplianceFilter(applianceID, 2))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []VoltageCurrentPoint
+
+	for rows.Next() {
+		var p VoltageCurrentPoint
+		if err := rows.Scan(&p.Label, &p.Voltage, &p.Current); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+
+	return result, nil
+}
+
+func (r *readingRepo) GetAnalyticsSummary(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) (*AnalyticsSummary, error) {
+
+	interval := buildShitRangeQuery(rangeType)
+
+	query := fmt.Sprintf(`
+		SELECT
+			COALESCE(AVG(er.power), 0) AS avg_power,
+			COALESCE(AVG(er.voltage), 0) AS avg_voltage,
+			COALESCE(AVG(er.current), 0) AS avg_current,
+			COALESCE(MAX(er.power), 0) AS peak_power
+		FROM energy_readings er
+		JOIN appliances a ON a.id = er.appliance_id
+		WHERE
+			a.user_id = $1
+			AND er.ts >= NOW() - %s
+			%s
+	`, interval, buildApplianceFilter(applianceID, 2))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
+
+	var summary AnalyticsSummary
+
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+		&summary.AvgPower,
+		&summary.AvgVoltage,
+		&summary.AvgCurrent,
+		&summary.PeakPower,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &summary, nil
+}
+
+func buildShitRangeQuery(rangeType string) string {
+	switch rangeType {
+	case "today":
+		return "INTERVAL '1 day'"
+	case "7d":
+		return "INTERVAL '7 days'"
+	case "month":
+		return "INTERVAL '30 days'"
+	default:
+		return "INTERVAL '1 day'"
+	}
+}
+
+func buildApplianceFilter(applianceID *int64, paramIndex int) string {
+	if applianceID == nil {
+		return ""
+	}
+	return fmt.Sprintf("AND er.appliance_id = $%d", paramIndex)
 }

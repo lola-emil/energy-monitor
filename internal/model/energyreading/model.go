@@ -28,3 +28,23 @@ type ChartPoint struct {
 	Label string  `json:"label"`
 	Value float64 `json:"value"`
 }
+
+type AnalyticsSummary struct {
+	TotalEnergyKWh float64 `json:"total_energy_kwh"`
+	AvgPower       float64 `json:"avg_power"`
+	AvgVoltage     float64 `json:"avg_voltage"`
+	AvgCurrent     float64 `json:"avg_current"`
+	PeakPower      float64 `json:"peak_power"`
+}
+
+type AnalyticsResponse struct {
+	Summary        AnalyticsSummary      `json:"summary"`
+	Energy         []ChartPoint          `json:"energy"`
+	VoltageCurrent []VoltageCurrentPoint `json:"voltage_current"`
+}
+
+type VoltageCurrentPoint struct {
+	Label   string  `json:"label"`
+	Voltage float64 `json:"voltage"`
+	Current float64 `json:"current"`
+}

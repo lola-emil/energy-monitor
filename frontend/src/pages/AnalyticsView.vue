@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-
-// shadcn-vue components (update paths to your project)
+import { ref, computed, onMounted, watch } from 'vue'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
@@ -33,6 +31,8 @@ import {
 } from 'echarts/components'
 
 import { useThemeColors } from '@/composables/useThemeColors'
+import type { AnalyticsResponse } from '@/services/reading.service';
+import { readingService } from '@/services/reading.service'
 
 use([
     CanvasRenderer,
@@ -44,79 +44,49 @@ use([
 
 const { colors } = useThemeColors()
 
-const activeEnergySeries = computed(() => {
-    if (selectedRange.value === 'today') {
-        return [
-            { label: '00:00', value: 120 },
-            { label: '04:00', value: 90 },
-            { label: '08:00', value: 310 },
-            { label: '12:00', value: 430 },
-            { label: '16:00', value: 390 },
-            { label: '20:00', value: 280 },
-        ]
-    }
+const selectedRange = ref<'today' | '7d' | 'month'>('today')
+const selectedAppliance = ref<number | null>(null)
+const defaultAnalytics: AnalyticsResponse = {
+    summary: {
+        total_energy_kwh: 0,
+        avg_power: 0,
+        avg_voltage: 0,
+        avg_current: 0,
+        peak_power: 0,
+    },
+    energy: [],
+    voltage_current: [],
+}
 
-    if (selectedRange.value === '7d') {
-        return [
-            { label: 'Mon', value: 410 },
-            { label: 'Tue', value: 390 },
-            { label: 'Wed', value: 450 },
-            { label: 'Thu', value: 430 },
-            { label: 'Fri', value: 470 },
-            { label: 'Sat', value: 520 },
-            { label: 'Sun', value: 480 },
-        ]
-    }
+const analyticsData = ref<AnalyticsResponse>(defaultAnalytics)
 
-    return energySeries.value
-})
+const fetchAnalytics = async () => {
+    try {
+        isLoading.value = true
+
+        analyticsData.value = await readingService.getAnalytics({
+            range: selectedRange.value,
+            appliance_id: selectedAppliance.value ?? undefined,
+        })
+    } catch (err) {
+        console.error("Analytics error:", err)
+    } finally {
+        isLoading.value = false
+    }
+}
+
 
 // ------------ State (mock data for now) ------------
 const isLoading = ref(true)
 
 const devices = ref([
     { id: 'all', name: 'All devices' },
-    { id: '1', name: 'Main Meter' },
-    { id: '2', name: 'Office Load' }
+    { id: '5', name: 'Main Meter' },
+    { id: '4', name: 'Office Load' }
 ])
 
-const selectedDeviceId = ref('all')
-const selectedRange = ref<'today' | '7d' | 'month'>('month')
 const lastUpdated = ref(new Date())
 
-// Summary metrics for selected device + range
-const totalEnergy = ref(1284)   // kWh
-const avgPower = ref(480)       // W
-const avgVoltage = ref(229)     // V
-const avgCurrent = ref(2.1)     // A
-const peakPower = ref(910)      // W
-
-// Simple sample timeseries for charts
-const energySeries = ref([
-    { label: 'Jan', value: 600 },
-    { label: 'Feb', value: 580 },
-    { label: 'Mar', value: 620 },
-    { label: 'Apr', value: 590 },
-    { label: 'May', value: 610 },
-    { label: 'Jun', value: 570 },
-    { label: 'Jul', value: 600 },
-    { label: 'Aug', value: 640 },
-    { label: 'Sep', value: 700 },
-    { label: 'Oct', value: 780 },
-    { label: 'Nov', value: 820 },
-    { label: 'Dec', value: 960 }
-])
-
-const voltageCurrentSeries = ref([
-    { time: '00:00', voltage: 228, current: 1.8 },
-    { time: '04:00', voltage: 230, current: 1.6 },
-    { time: '08:00', voltage: 231, current: 2.4 },
-    { time: '12:00', voltage: 229, current: 2.9 },
-    { time: '16:00', voltage: 227, current: 2.3 },
-    { time: '20:00', voltage: 230, current: 2.0 }
-])
-
-// Table rows
 const readings = ref([
     { time: '2026-04-23 10:00', voltage: 229, current: 2.1, power: 482, energy: 0.48 },
     { time: '2026-04-23 10:05', voltage: 230, current: 2.0, power: 460, energy: 0.46 },
@@ -144,6 +114,10 @@ const energyChartOptions = computed(() => {
             textStyle: {
                 color: colors.value.cardForeground,
             },
+            formatter: (params: any) => {
+                const item = params[0]
+                return `${item.axisValue}<br/>${item.value.toFixed(2)} kWh`
+            },
         },
 
         grid: {
@@ -157,7 +131,7 @@ const energyChartOptions = computed(() => {
         xAxis: {
             type: 'category',
             boundaryGap: false,
-            data: activeEnergySeries.value.map(i => i.label),
+            data: analyticsData.value.energy?.map(i => i.label),
             axisLabel: {
                 color: colors.value.mutedForeground,
             },
@@ -190,7 +164,7 @@ const energyChartOptions = computed(() => {
                 symbol: 'circle',
                 symbolSize: 8,
 
-                data: activeEnergySeries.value.map(i => i.value),
+                data: analyticsData.value.energy?.map(i => i.value),
 
                 lineStyle: {
                     width: 3,
@@ -222,12 +196,6 @@ const voltageChartOptions = computed(() => {
             borderColor: colors.value.border,
         },
 
-        // legend: {
-        //     textStyle: {
-        //         color: colors.value.mutedForeground,
-        //     },
-        // },
-
         grid: {
             left: 20,
             right: 20,
@@ -238,7 +206,7 @@ const voltageChartOptions = computed(() => {
 
         xAxis: {
             type: 'category',
-            data: voltageCurrentSeries.value.map(i => i.time),
+            data: analyticsData.value.voltage_current?.map(i => i.label),
             axisLabel: {
                 color: colors.value.mutedForeground,
             },
@@ -311,7 +279,7 @@ const voltageChartOptions = computed(() => {
                 name: 'Voltage',
                 type: 'line',
                 smooth: true,
-                data: voltageCurrentSeries.value.map(i => i.voltage),
+                data: analyticsData.value.voltage_current?.map(i => i.voltage),
                 lineStyle: {
                     width: 3,
                     color: colors.value.chart1,
@@ -322,7 +290,7 @@ const voltageChartOptions = computed(() => {
                 type: 'line',
                 smooth: true,
                 yAxisIndex: 1,
-                data: voltageCurrentSeries.value.map(i => i.current),
+                data: analyticsData.value.voltage_current?.map(i => i.current),
                 lineStyle: {
                     width: 3,
                     color: colors.value.chart2,
@@ -332,11 +300,10 @@ const voltageChartOptions = computed(() => {
     }
 })
 
-onMounted(() => {
-    // simulate loading
-    setTimeout(() => {
-        isLoading.value = false
-    }, 700)
+onMounted(fetchAnalytics)
+
+watch([selectedRange, selectedAppliance], () => {
+    fetchAnalytics()
 })
 
 // TODO: add watchers on selectedDeviceId / selectedRange to refetch real data from your API.
@@ -358,7 +325,7 @@ onMounted(() => {
                     <!-- Device selector -->
                     <div class="flex items-center gap-2">
                         <span class="whitespace-nowrap">Device:</span>
-                        <Select v-model="selectedDeviceId">
+                        <Select v-model="selectedAppliance">
                             <SelectTrigger class="w-45">
                                 <SelectValue placeholder="Select device" />
                             </SelectTrigger>
@@ -411,7 +378,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ totalEnergy }} kWh</span>
+                            <span v-else>{{ analyticsData.summary.total_energy_kwh.toFixed(2) }} kWh</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Total in selected period.
@@ -428,7 +395,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ avgPower }} W</span>
+                            <span v-else>{{ analyticsData.summary.avg_power.toFixed(2) }} W</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             From all readings in this range.
@@ -445,7 +412,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>{{ avgVoltage }} V</span>
+                            <span v-else>{{ analyticsData.summary.avg_voltage.toFixed(2) }} V</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Indicates supply stability.
@@ -462,7 +429,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>{{ avgCurrent }} A</span>
+                            <span v-else>{{ analyticsData.summary.avg_current.toFixed(2) }} A</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Load drawn over time.
@@ -479,7 +446,7 @@ onMounted(() => {
                     <CardContent>
                         <p class="text-2xl font-bold">
                             <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ peakPower }} W</span>
+                            <span v-else>{{ analyticsData.summary.peak_power.toFixed(2) }} W</span>
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Highest recorded in this range.
@@ -500,8 +467,7 @@ onMounted(() => {
                     </CardHeader>
                     <CardContent>
                         <!-- Replace with real chart component (Chart.js, ECharts, etc.) -->
-                        <div
-                            class="h-64 rounded-md border border-dashed border-muted text-xs text-muted-foreground">
+                        <div class="h-64 rounded-md border border-dashed border-muted text-xs text-muted-foreground">
                             <VChart class="h-72 w-full" :option="energyChartOptions" autoresize />
                         </div>
                     </CardContent>
@@ -517,8 +483,7 @@ onMounted(() => {
                     </CardHeader>
                     <CardContent>
                         <!-- Replace with dual‑axis chart -->
-                        <div
-                            class="h-64 rounded-md border border-dashed border-muted text-xs text-muted-foreground">
+                        <div class="h-64 rounded-md border border-dashed border-muted text-xs text-muted-foreground">
                             <VChart class="h-72 w-full" :option="voltageChartOptions" autoresize />
                         </div>
                     </CardContent>
