@@ -15,7 +15,6 @@ import {
 } from 'lucide-vue-next'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
-
 import {
     CanvasRenderer
 } from 'echarts/renderers'
@@ -29,10 +28,11 @@ import {
     TooltipComponent,
     LegendComponent
 } from 'echarts/components'
-
 import { useThemeColors } from '@/composables/useThemeColors'
 import type { AnalyticsResponse } from '@/services/reading.service';
 import { readingService } from '@/services/reading.service'
+import type { Appliance } from '@/types/appliance'
+import { applianceService } from '@/services/appliance.service'
 
 use([
     CanvasRenderer,
@@ -58,6 +58,24 @@ const defaultAnalytics: AnalyticsResponse = {
     voltage_current: [],
 }
 
+const isAppliancesLoading = ref(false);
+const appliances = ref<Appliance[]>([])
+
+const fetchAppliances = async () => {
+    try {
+        isAppliancesLoading.value = true;
+
+        const data = await applianceService.getAll();
+
+        appliances.value = data
+        console.log(appliances.value)
+    } catch (err) {
+        console.error("Appliance list error:", err)
+    } finally {
+        isAppliancesLoading.value = false;
+    }
+}
+
 const analyticsData = ref<AnalyticsResponse>(defaultAnalytics)
 
 const fetchAnalytics = async () => {
@@ -75,15 +93,7 @@ const fetchAnalytics = async () => {
     }
 }
 
-
-// ------------ State (mock data for now) ------------
 const isLoading = ref(true)
-
-const devices = ref([
-    { id: 'all', name: 'All devices' },
-    { id: '5', name: 'Main Meter' },
-    { id: '4', name: 'Office Load' }
-])
 
 const lastUpdated = ref(new Date())
 
@@ -300,7 +310,10 @@ const voltageChartOptions = computed(() => {
     }
 })
 
-onMounted(fetchAnalytics)
+onMounted(() => {
+    fetchAnalytics();
+    fetchAppliances();
+})
 
 watch([selectedRange, selectedAppliance], () => {
     fetchAnalytics()
@@ -330,7 +343,8 @@ watch([selectedRange, selectedAppliance], () => {
                                 <SelectValue placeholder="Select device" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem v-for="dev in devices" :key="dev.id" :value="dev.id">
+                                <SelectItem value="all">All devices</SelectItem>
+                                <SelectItem v-for="dev in appliances" :key="dev.id" :value="dev.id">
                                     {{ dev.name }}
                                 </SelectItem>
                             </SelectContent>
