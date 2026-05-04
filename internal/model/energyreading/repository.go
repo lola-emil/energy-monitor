@@ -16,13 +16,14 @@ type readingRepo struct {
 type ReadingRepository interface {
 	Create(ctx context.Context, r *EnergyReading) error
 	List(ctx context.Context, userID int64, applianceID *int64, from, to *time.Time) ([]EnergyReading, error)
+
 	GetSummary(
 		ctx context.Context,
 		userID int64,
 		applianceID *int64,
-		from,
-		to *time.Time,
+		rangeType string,
 	) (*ReadingSummary, error)
+
 	UpdateApplianceLastReading(
 		ctx context.Context,
 		applianceID int64,
@@ -54,6 +55,13 @@ type ReadingRepository interface {
 		applianceID *int64,
 		rangeType string,
 	) (*AnalyticsSummary, error)
+
+	GetDetailedReadings(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		rangeType string,
+	) ([]EnergyReading, error)
 }
 
 func NewReadingRepository(db *sqlx.DB) ReadingRepository {
@@ -129,13 +137,15 @@ func (r *readingRepo) GetSummary(
 	ctx context.Context,
 	userID int64,
 	applianceID *int64,
-	from,
-	to *time.Time,
+	rangeType string,
 ) (*ReadingSummary, error) {
-	query := `
+
+	interval := buildRangeCondition(rangeType)
+
+	query := fmt.Sprintf(`
 		SELECT
 			COALESCE(SUM(
-				(EXTRACT(EPOCH FROM (ts - prev_ts)) * power) / 3600000.0
+				(LEAST(EXTRACT(EPOCH FROM (ts - prev_ts)), 5) * power) / 3600000.0
 			), 0) AS total_energy_kwh,
 
 			COALESCE(MAX(power), 0) AS peak_power,
@@ -149,7 +159,7 @@ func (r *readingRepo) GetSummary(
 			(
 				SELECT COUNT(*)
 				FROM appliances WHERE user_id = $1
-			) as device_count,
+			) AS device_count,
 
 			(
 				SELECT rate_per_kwh
@@ -174,18 +184,22 @@ func (r *readingRepo) GetSummary(
 				) AS prev_ts
 			FROM energy_readings er
 			JOIN appliances a ON a.id = er.appliance_id
-			WHERE a.user_id = $1
+			WHERE
+				a.user_id = $1
+				AND %s
+				%s
 		) t
 		WHERE prev_ts IS NOT NULL;
-	`
+	`, interval, buildApplianceFilter(applianceID, 2))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
 
 	var summary ReadingSummary
 
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		userID,
-	).Scan(
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&summary.TotalEnergyKWh,
 		&summary.PeakPower,
 		&summary.ActiveDevices,
@@ -199,7 +213,6 @@ func (r *readingRepo) GetSummary(
 
 	return &summary, nil
 }
-
 func (r *readingRepo) UpdateApplianceLastReading(
 	ctx context.Context,
 	applianceID int64,
@@ -241,31 +254,127 @@ func (r *readingRepo) GetEnergyChart(
 	rangeType string,
 ) ([]ChartPoint, error) {
 
-	query := `
-		SELECT
-			DATE(t.ts) AS label,
-			SUM(
-				(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
-			) AS value
-		FROM (
+	var query string
+
+	switch rangeType {
+
+	case "today":
+		query = `
+		WITH hours AS (
+			SELECT generate_series(0, 23) AS hour
+		),
+		energy AS (
 			SELECT
-				er.ts,
-				er.power,
-				er.appliance_id,
-				LAG(er.ts) OVER (
-					PARTITION BY er.appliance_id
-					ORDER BY er.ts
-				) AS prev_ts
-			FROM energy_readings er
-			JOIN appliances a ON a.id = er.appliance_id
-			WHERE
-				a.user_id = $1
-				AND er.ts >= NOW() - INTERVAL '30 days'
-		) t
-		WHERE t.prev_ts IS NOT NULL
-		GROUP BY DATE(t.ts)
-		ORDER BY DATE(t.ts);
-	`
+				EXTRACT(HOUR FROM t.ts)::int AS hour,
+				SUM(
+					(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
+				) AS value
+			FROM (
+				SELECT
+					er.ts,
+					er.power,
+					LAG(er.ts) OVER (
+						PARTITION BY er.appliance_id
+						ORDER BY er.ts
+					) AS prev_ts
+				FROM energy_readings er
+				JOIN appliances a ON a.id = er.appliance_id
+				WHERE
+					a.user_id = $1
+					AND er.ts >= date_trunc('day', NOW())
+			) t
+			WHERE prev_ts IS NOT NULL
+			GROUP BY hour
+		)
+
+		SELECT
+			LPAD(hours.hour::text, 2, '0') || ':00' AS label,
+			COALESCE(e.value, 0) AS value
+		FROM hours
+		LEFT JOIN energy e ON e.hour = hours.hour
+		ORDER BY hours.hour;
+		`
+
+	case "7d":
+		query = `
+			WITH days AS (
+				SELECT generate_series(
+					NOW() - INTERVAL '6 days',
+					NOW(),
+					INTERVAL '1 day'
+				)::date AS day
+			),
+			energy AS (
+				SELECT
+					DATE(t.ts) AS day,
+					SUM(
+						(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
+					) AS value
+				FROM (
+					SELECT
+						er.ts,
+						er.power,
+						LAG(er.ts) OVER (
+							PARTITION BY er.appliance_id
+							ORDER BY er.ts
+						) AS prev_ts
+					FROM energy_readings er
+					JOIN appliances a ON a.id = er.appliance_id
+					WHERE
+						a.user_id = $1
+						AND er.ts >= NOW() - INTERVAL '7 days'
+				) t
+				WHERE prev_ts IS NOT NULL
+				GROUP BY day
+			)
+			SELECT
+				TO_CHAR(d.day, 'MM-DD') AS label,
+				COALESCE(e.value, 0) AS value
+			FROM days d
+			LEFT JOIN energy e ON e.day = d.day
+			ORDER BY d.day;
+		`
+
+	default: // month
+		query = `
+			WITH days AS (
+				SELECT generate_series(
+					date_trunc('month', NOW()),
+					date_trunc('month', NOW()) + INTERVAL '1 month - 1 day',
+					INTERVAL '1 day'
+				)::date AS day
+			),
+			energy AS (
+				SELECT
+					DATE(t.ts) AS day,
+					SUM(
+						(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
+					) AS value
+				FROM (
+					SELECT
+						er.ts,
+						er.power,
+						LAG(er.ts) OVER (
+							PARTITION BY er.appliance_id
+							ORDER BY er.ts
+						) AS prev_ts
+					FROM energy_readings er
+					JOIN appliances a ON a.id = er.appliance_id
+					WHERE
+						a.user_id = $1
+						AND er.ts >= date_trunc('month', NOW())
+				) t
+				WHERE prev_ts IS NOT NULL
+				GROUP BY day
+			)
+			SELECT
+				TO_CHAR(d.day, 'DD') AS label,
+				COALESCE(e.value, 0) AS value
+			FROM days d
+			LEFT JOIN energy e ON e.day = d.day
+			ORDER BY d.day;
+		`
+	}
 
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
@@ -299,6 +408,19 @@ func buildRangeQuery(rangeType string) (interval string, labelFormat string) {
 	}
 }
 
+func buildRangeCondition(rangeType string) string {
+	switch rangeType {
+	case "today":
+		return "er.ts >= date_trunc('day', NOW())"
+	case "7d":
+		return "er.ts >= NOW() - INTERVAL '7 days'"
+	case "month":
+		return "er.ts >= date_trunc('month', NOW())"
+	default:
+		return "er.ts >= date_trunc('day', NOW())"
+	}
+}
+
 func (r *readingRepo) GetAnalyticsEnergyChart(
 	ctx context.Context,
 	userID int64,
@@ -306,19 +428,21 @@ func (r *readingRepo) GetAnalyticsEnergyChart(
 	rangeType string,
 ) ([]ChartPoint, error) {
 
-	interval, labelFormat := buildRangeQuery(rangeType)
+	condition := buildRangeCondition(rangeType)
+	groupUnit := groupByUnit(rangeType)
+	labelFormat := buildLabelFormat(rangeType)
 
 	query := fmt.Sprintf(`
 		SELECT
-			TO_CHAR(t.ts, '%s') AS label,
+			TO_CHAR(group_ts, '%s') AS label,
 			SUM(
 				(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
 			) AS value
 		FROM (
 			SELECT
+				DATE_TRUNC('%s', er.ts) AS group_ts,
 				er.ts,
 				er.power,
-				er.appliance_id,
 				LAG(er.ts) OVER (
 					PARTITION BY er.appliance_id
 					ORDER BY er.ts
@@ -327,13 +451,13 @@ func (r *readingRepo) GetAnalyticsEnergyChart(
 			JOIN appliances a ON a.id = er.appliance_id
 			WHERE
 				a.user_id = $1
-				AND er.ts >= NOW() - %s
+				AND %s
 				%s
 		) t
 		WHERE t.prev_ts IS NOT NULL
-		GROUP BY label
-		ORDER BY label;
-	`, labelFormat, interval, buildApplianceFilter(applianceID, 2))
+		GROUP BY group_ts
+		ORDER BY group_ts;
+	`, labelFormat, groupUnit, condition, buildApplianceFilter(applianceID, 2))
 
 	args := []any{userID}
 	if applianceID != nil {
@@ -358,7 +482,6 @@ func (r *readingRepo) GetAnalyticsEnergyChart(
 
 	return result, nil
 }
-
 func (r *readingRepo) GetVoltageCurrentChart(
 	ctx context.Context,
 	userID int64,
@@ -366,22 +489,30 @@ func (r *readingRepo) GetVoltageCurrentChart(
 	rangeType string,
 ) ([]VoltageCurrentPoint, error) {
 
-	interval, labelFormat := buildRangeQuery(rangeType)
+	condition := buildRangeCondition(rangeType)
+	groupUnit := groupByUnit(rangeType)
+	labelFormat := buildLabelFormat(rangeType)
 
 	query := fmt.Sprintf(`
 		SELECT
-			TO_CHAR(er.ts, '%s') AS label,
-			AVG(er.voltage) AS voltage,
-			AVG(er.current) AS current
-		FROM energy_readings er
-		JOIN appliances a ON a.id = er.appliance_id
-		WHERE
-			a.user_id = $1
-			AND er.ts >= NOW() - %s
-			%s
-		GROUP BY label
-		ORDER BY label;
-	`, labelFormat, interval, buildApplianceFilter(applianceID, 2))
+			TO_CHAR(group_ts, '%s') AS label,
+			AVG(voltage) AS voltage,
+			AVG(current) AS current
+		FROM (
+			SELECT
+				DATE_TRUNC('%s', er.ts) AS group_ts,
+				er.voltage,
+				er.current
+			FROM energy_readings er
+			JOIN appliances a ON a.id = er.appliance_id
+			WHERE
+				a.user_id = $1
+				AND %s
+				%s
+		) t
+		GROUP BY group_ts
+		ORDER BY group_ts;
+	`, labelFormat, groupUnit, condition, buildApplianceFilter(applianceID, 2))
 
 	args := []any{userID}
 	if applianceID != nil {
@@ -406,7 +537,6 @@ func (r *readingRepo) GetVoltageCurrentChart(
 
 	return result, nil
 }
-
 func (r *readingRepo) GetAnalyticsSummary(
 	ctx context.Context,
 	userID int64,
@@ -414,21 +544,43 @@ func (r *readingRepo) GetAnalyticsSummary(
 	rangeType string,
 ) (*AnalyticsSummary, error) {
 
-	interval := buildShitRangeQuery(rangeType)
+	condition := buildRangeCondition(rangeType)
 
 	query := fmt.Sprintf(`
 		SELECT
-			COALESCE(AVG(er.power), 0) AS avg_power,
-			COALESCE(AVG(er.voltage), 0) AS avg_voltage,
-			COALESCE(AVG(er.current), 0) AS avg_current,
-			COALESCE(MAX(er.power), 0) AS peak_power
-		FROM energy_readings er
-		JOIN appliances a ON a.id = er.appliance_id
-		WHERE
-			a.user_id = $1
-			AND er.ts >= NOW() - %s
-			%s
-	`, interval, buildApplianceFilter(applianceID, 2))
+			COALESCE(
+				SUM(t.power * t.dt) / NULLIF(SUM(t.dt), 0),
+				0
+			) AS avg_power,
+
+			COALESCE(AVG(t.voltage), 0) AS avg_voltage,
+			COALESCE(AVG(t.current), 0) AS avg_current,
+
+			COALESCE(MAX(t.power), 0) AS peak_power
+
+		FROM (
+			SELECT
+				er.power,
+				er.voltage,
+				er.current,
+
+				LEAST(
+					EXTRACT(EPOCH FROM (er.ts - LAG(er.ts) OVER (
+						PARTITION BY er.appliance_id
+						ORDER BY er.ts
+					))),
+					5
+				) AS dt
+
+			FROM energy_readings er
+			JOIN appliances a ON a.id = er.appliance_id
+			WHERE
+				a.user_id = $1
+				AND %s
+				%s
+		) t
+		WHERE t.dt IS NOT NULL
+	`, condition, buildApplianceFilter(applianceID, 2))
 
 	args := []any{userID}
 	if applianceID != nil {
@@ -450,16 +602,85 @@ func (r *readingRepo) GetAnalyticsSummary(
 	return &summary, nil
 }
 
-func buildShitRangeQuery(rangeType string) string {
+func (r *readingRepo) GetDetailedReadings(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) ([]EnergyReading, error) {
+
+	condition := buildRangeCondition(rangeType)
+
+	query := fmt.Sprintf(`
+		SELECT
+			er.ts,
+			er.voltage,
+			er.current,
+			er.power,
+			er.energy_kwh
+		FROM energy_readings er
+		JOIN appliances a ON a.id = er.appliance_id
+		WHERE
+			a.user_id = $1
+			AND %s
+			%s
+		ORDER BY er.ts DESC
+		LIMIT 100
+	`, condition, buildApplianceFilter(applianceID, 2))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []EnergyReading
+
+	for rows.Next() {
+		var r EnergyReading
+		if err := rows.Scan(
+			&r.Timestamp,
+			&r.Voltage,
+			&r.Current,
+			&r.Power,
+			&r.EnergyKWh,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+
+	return result, nil
+}
+
+func groupByUnit(rangeType string) string {
 	switch rangeType {
 	case "today":
-		return "INTERVAL '1 day'"
+		return "hour"
 	case "7d":
-		return "INTERVAL '7 days'"
+		return "day"
 	case "month":
-		return "INTERVAL '30 days'"
+		return "day"
 	default:
-		return "INTERVAL '1 day'"
+		return "hour"
+	}
+}
+
+func buildLabelFormat(rangeType string) string {
+	switch rangeType {
+	case "today":
+		return "HH24:00"
+	case "7d":
+		return "MM-DD"
+	case "month":
+		return "DD"
+	default:
+		return "HH24:00"
 	}
 }
 

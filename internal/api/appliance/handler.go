@@ -99,3 +99,18 @@ func (h *ApplianceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *ApplianceHandler) GetStatus(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	userID := httputil.GetUserID(r)
+
+	data, err := h.service.GetStatus(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}

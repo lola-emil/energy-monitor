@@ -5,6 +5,7 @@ import (
 	"energy-monitor-server/internal/model/appliance"
 	"errors"
 	"strings"
+	"time"
 )
 
 type ApplianceService struct {
@@ -54,4 +55,30 @@ func (s *ApplianceService) Update(ctx context.Context, a *appliance.Appliance) e
 
 func (s *ApplianceService) Delete(ctx context.Context, userID, id int64) error {
 	return s.repo.Delete(ctx, userID, id)
+
+}
+
+func (s *ApplianceService) GetStatus(
+	ctx context.Context,
+	userID int64,
+) ([]appliance.ApplianceWithReading, error) {
+
+	data, err := s.repo.GetWithLatestReading(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+
+	for i := range data {
+		if data[i].LastSeen != nil &&
+			now.Sub(*data[i].LastSeen) < 10*time.Second {
+
+			data[i].Status = "online"
+		} else {
+			data[i].Status = "offline"
+		}
+	}
+
+	return data, nil
 }

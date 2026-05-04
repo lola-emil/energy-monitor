@@ -33,21 +33,41 @@ func (h *ReadingHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(req)
 }
+
 func (h *ReadingHandler) GetSummary(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	ctx := r.Context()
 	userID := httputil.GetUserID(r)
 
+	rangeType := r.URL.Query().Get("range")
+	if rangeType == "" {
+		rangeType = "today"
+	}
+
+	var applianceID *int64
+	if idStr := r.URL.Query().Get("appliance_id"); idStr != "" && idStr != "all" {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "invalid appliance_id", http.StatusBadRequest)
+			return
+		}
+		applianceID = &id
+	}
+
 	summary, err := h.service.GetSummary(
-		r.Context(),
+		ctx,
 		userID,
+		applianceID,
+		rangeType,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(summary)
 }
 
@@ -57,9 +77,15 @@ func (h *ReadingHandler) GetChart(
 ) {
 	userID := httputil.GetUserID(r)
 
+	rangeType := r.URL.Query().Get("range")
+	if rangeType == "" {
+		rangeType = "today"
+	}
+
 	data, err := h.service.GetEnergyChart(
 		r.Context(),
 		userID,
+		rangeType,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -93,6 +119,34 @@ func (h *ReadingHandler) GetAnalytics(
 	}
 
 	data, err := h.service.GetAnalytics(
+		r.Context(),
+		userID,
+		applianceID,
+		rangeType,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}
+
+func (h *ReadingHandler) GetDetailedReadings(w http.ResponseWriter, r *http.Request) {
+	userID := httputil.GetUserID(r)
+
+	rangeType := r.URL.Query().Get("range")
+	if rangeType == "" {
+		rangeType = "today"
+	}
+
+	var applianceID *int64
+	if idStr := r.URL.Query().Get("appliance_id"); idStr != "" && idStr != "all" {
+		id, _ := strconv.ParseInt(idStr, 10, 64)
+		applianceID = &id
+	}
+
+	data, err := h.service.GetDetailedReadings(
 		r.Context(),
 		userID,
 		applianceID,

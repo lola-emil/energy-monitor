@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Table, TableHeader, TableRow, TableHead, TableCell, TableBody } from "@/components/ui/table"
 import { ref, computed, onMounted, watch } from 'vue'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ import type { AnalyticsResponse } from '@/services/reading.service';
 import { readingService } from '@/services/reading.service'
 import type { Appliance } from '@/types/appliance'
 import { applianceService } from '@/services/appliance.service'
+import { formatTime } from "@/lib/time"
 
 use([
     CanvasRenderer,
@@ -56,6 +58,28 @@ const defaultAnalytics: AnalyticsResponse = {
     },
     energy: [],
     voltage_current: [],
+}
+
+const detailedReadings = ref<any[]>([])
+const isLoadingTable = ref(false)
+
+const fetchDetailedReadings = async () => {
+    try {
+        isLoadingTable.value = true
+
+        const data = await readingService.getDetailedReadings({
+            range: selectedRange.value,
+            appliance_id: selectedAppliance.value ?? undefined,
+        })
+
+        detailedReadings.value = Array.isArray(data) ? data : []
+
+    } catch (err) {
+        console.error("Failed to fetch readings:", err)
+        detailedReadings.value = [] // fallback
+    } finally {
+        isLoadingTable.value = false
+    }
 }
 
 const isAppliancesLoading = ref(false);
@@ -313,10 +337,12 @@ const voltageChartOptions = computed(() => {
 onMounted(() => {
     fetchAnalytics();
     fetchAppliances();
+    fetchDetailedReadings();
 })
 
 watch([selectedRange, selectedAppliance], () => {
     fetchAnalytics()
+    fetchDetailedReadings()
 })
 
 // TODO: add watchers on selectedDeviceId / selectedRange to refetch real data from your API.
@@ -521,28 +547,37 @@ watch([selectedRange, selectedAppliance], () => {
                     </CardHeader>
                     <CardContent>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="border-b text-[11px] uppercase text-muted-foreground">
-                                    <tr>
-                                        <th class="py-2 pr-3">Timestamp</th>
-                                        <th class="py-2 px-3">Voltage (V)</th>
-                                        <th class="py-2 px-3">Current (A)</th>
-                                        <th class="py-2 px-3">Power (W)</th>
-                                        <th class="py-2 px-3">Energy (kWh)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="row in readings" :key="row.time" class="border-b last:border-0">
-                                        <td class="py-2 pr-3 align-middle text-[11px]">
-                                            {{ row.time }}
-                                        </td>
-                                        <td class="py-2 px-3 align-middle">{{ row.voltage }}</td>
-                                        <td class="py-2 px-3 align-middle">{{ row.current }}</td>
-                                        <td class="py-2 px-3 align-middle">{{ row.power }}</td>
-                                        <td class="py-2 px-3 align-middle">{{ row.energy.toFixed(2) }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Timestamp</TableHead>
+                                        <TableHead>Voltage (V)</TableHead>
+                                        <TableHead>Current (A)</TableHead>
+                                        <TableHead>Power (W)</TableHead>
+                                        <TableHead>Energy (kWh)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+
+                                <TableBody>
+                                    <TableRow v-if="isLoadingTable">
+                                        <TableCell colspan="5">Loading...</TableCell>
+                                    </TableRow>
+
+                                    <TableRow v-for="r in detailedReadings" :key="r.timestamp">
+                                        <TableCell>{{ formatTime(r.timestamp) }}</TableCell>
+                                        <TableCell>{{ r.voltage }}</TableCell>
+                                        <TableCell>{{ r.current }}</TableCell>
+                                        <TableCell>{{ r.power }}</TableCell>
+                                        <TableCell>{{ r.energy_kwh }}</TableCell>
+                                    </TableRow>
+
+                                    <TableRow v-if="!detailedReadings.length && !isLoadingTable">
+                                        <TableCell colspan="5" class="text-center">
+                                            No readings found
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
                         </div>
                     </CardContent>
                 </Card>

@@ -6,6 +6,7 @@ func RegisterRoutes(r chi.Router, h *ReadingHandler) {
 	r.Get("/summary", h.GetSummary)
 	r.Get("/chart", h.GetChart)
 	r.Get("/analytics", h.GetAnalytics)
+	r.Get("/detailed", h.GetDetailedReadings)
 }
 
 // r.Get("/summary", h.GetSummary)

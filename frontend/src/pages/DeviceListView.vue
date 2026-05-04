@@ -18,6 +18,7 @@ import type { Appliance } from "@/types/appliance"
 import AddApplianceDialog from "@/components/AddDeviceModal.vue"
 import EditDeviceModal from '@/components/EditDeviceModal.vue';
 import DeleteDeviceAlert from '@/components/DeleteDeviceAlert.vue';
+import { formatTime } from '@/lib/time'
 
 const appliances = ref<Appliance[]>([])
 const isLoading = ref(true)
@@ -179,7 +180,7 @@ onMounted(() => {
                         </div>
                         <div class="flex items-center justify-between text-[11px] text-muted-foreground">
                             <span>Last update:</span>
-                            <span>{{ appliance.updated_at }}</span>
+                            <span>{{ formatTime(appliance.updated_at) }}</span>
                         </div>
                     </CardContent>
 

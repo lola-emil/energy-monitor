@@ -44,6 +44,11 @@ type ApplianceRepository interface {
 		ctx context.Context,
 		applianceID int64,
 	) error
+
+	GetWithLatestReading(
+		ctx context.Context,
+		userID int64,
+	) ([]ApplianceWithReading, error)
 }
 
 func NewApplianceRepo(db *sqlx.DB) ApplianceRepository {
@@ -310,4 +315,55 @@ func (r *applianceRepo) MarkOffline(
 	)
 
 	return err
+}
+
+func (r *applianceRepo) GetWithLatestReading(
+	ctx context.Context,
+	userID int64,
+) ([]ApplianceWithReading, error) {
+
+	query := `
+		SELECT
+			a.id,
+			a.name,
+			a.last_reading as last_seen,
+
+			er.power
+
+		FROM appliances a
+
+		LEFT JOIN LATERAL (
+			SELECT power
+			FROM energy_readings
+			WHERE appliance_id = a.id
+			ORDER BY ts DESC
+			LIMIT 1
+		) er ON true
+
+		WHERE a.user_id = $1
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ApplianceWithReading
+
+	for rows.Next() {
+		var a ApplianceWithReading
+		if err := rows.Scan(
+			&a.ID,
+			&a.Name,
+			&a.LastSeen,
+			&a.Power,
+		); err != nil {
+			return nil, err
+		}
+
+		result = append(result, a)
+	}
+
+	return result, nil
 }

@@ -22,3 +22,11 @@ type Appliance struct {
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 }
+
+type ApplianceWithReading struct {
+	ID       int64      `json:"id"`
+	Name     string     `json:"name"`
+	LastSeen *time.Time `json:"last_seen"`
+	Power    *float64   `json:"power"`
+	Status   string     `json:"status"`
+}

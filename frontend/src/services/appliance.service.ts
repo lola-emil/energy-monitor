@@ -1,6 +1,14 @@
 import api from "./api"
 import type { Appliance } from "@/types/appliance"
 
+export interface ApplianceWithReading {
+  id: number
+  name: string
+  last_seen: string
+  power: number
+  status: string
+}
+
 export const applianceService = {
   async getAll(): Promise<Appliance[]> {
     const response = await api.get("/appliances")
@@ -25,4 +33,9 @@ export const applianceService = {
   async delete(id: number) {
     await api.delete(`/appliances/${id}`)
   },
+
+  async getDeviceStatus() {
+  const res = await api.get<ApplianceWithReading[]>("/appliances/status")
+  return res.data
+}
 }

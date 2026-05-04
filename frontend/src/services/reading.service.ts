@@ -33,14 +33,15 @@ export interface AnalyticsResponse {
 }
 
 export const readingService = {
-    async getSummary(): Promise<ReadingSummary> {
-        const response = await api.get("/readings/summary");
+    async getSummary(params: { range: string }): Promise<ReadingSummary> {
+        const response = await api.get("/readings/summary", { params });
         return response.data;
     },
 
-
-    async getChart(): Promise<ChartPoint[]> {
-        const res = await api.get("/readings/chart");
+    async getChart(range: string): Promise<ChartPoint[]> {
+        const res = await api.get("/readings/chart", {
+            params: { range }
+        });
         return res.data;
     },
 
@@ -51,4 +52,12 @@ export const readingService = {
         const res = await api.get("/readings/analytics", { params });
         return res.data;
     },
+
+    async getDetailedReadings(params: {
+        range: string
+        appliance_id?: number
+    }) {
+        const res = await api.get("/readings/detailed", { params })
+        return res.data
+    }
 };

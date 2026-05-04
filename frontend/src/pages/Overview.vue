@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
     readingService,
     type ChartPoint,
@@ -18,7 +18,8 @@ import {
 } from 'echarts/renderers'
 
 import {
-    LineChart
+    LineChart,
+    BarChart
 } from 'echarts/charts'
 
 import {
@@ -29,6 +30,12 @@ import {
 
 import { useThemeColors } from '@/composables/useThemeColors'
 import { BoltIcon, CircleDollarSignIcon, ActivityIcon, AlertTriangleIcon } from 'lucide-vue-next'
+import { applianceService, type ApplianceWithReading } from '@/services/appliance.service'
+import { alertService, type Alert } from '@/services/alert.service'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+
+import AlertTable from '@/components/AlertTable.vue'
+import { formatTime } from '@/lib/time'
 
 use([
     CanvasRenderer,
@@ -36,6 +43,7 @@ use([
     GridComponent,
     TooltipComponent,
     LegendComponent,
+    BarChart
 ])
 
 
@@ -43,21 +51,16 @@ const { colors } = useThemeColors()
 const isLoading = ref(true)
 
 const now = ref(new Date())
-const period = ref<'month' | 'day'>('month')
+const selectedPeriod = ref<'month' | 'day'>('month')
 
 const isLoadingChart = ref(false)
 const chartData = ref<ChartPoint[]>([])
 
-const activeDevices = ref([
-    { id: 1, name: 'Main Meter', status: 'online', power: 430 },
-    { id: 2, name: 'Office Load', status: 'online', power: 210 },
-    { id: 3, name: 'Spare Meter', status: 'offline', power: 0 }
-])
+const activeDevices = ref<ApplianceWithReading[]>([])
 
-const recentAlerts = ref([
-    { id: 1, time: '2026-04-23 10:30', message: 'Voltage exceeded 250 V', severity: 'high' },
-    { id: 2, time: '2026-04-22 16:05', message: 'Device Office Load went offline', severity: 'medium' }
-])
+const fetchDevices = async () => {
+    activeDevices.value = await applianceService.getDeviceStatus()
+}
 
 const summary = ref<ReadingSummary>({
     total_energy_kwh: 0,
@@ -75,8 +78,13 @@ const fetchSummary = async () => {
     try {
         isLoading.value = true
 
-        const data = await readingService.getSummary()
+        const data = await readingService.getSummary({
+            range: selectedPeriod.value === 'day' ? 'today' : 'month',
+        })
+
         summary.value = data
+        now.value = new Date()
+
     } catch (error) {
         console.error("Failed to load summary:", error)
     } finally {
@@ -88,7 +96,10 @@ const fetchChart = async () => {
     try {
         isLoadingChart.value = true
 
-        const data = await readingService.getChart()
+        const data = await readingService.getChart(
+            selectedPeriod.value === 'day' ? 'today' : 'month'
+        )
+
         chartData.value = data
 
     } catch (err) {
@@ -98,12 +109,36 @@ const fetchChart = async () => {
     }
 }
 
+const recentAlerts = ref<Alert[]>([])
+const allAlerts = ref<Alert[]>([])
+const isModalOpen = ref(false)
+const isLoadingAlerts = ref(false)
+
+const fetchRecentAlerts = async () => {
+    recentAlerts.value = await alertService.getRecent()
+}
+
+const fetchAllAlerts = async () => {
+    isLoadingAlerts.value = true
+    allAlerts.value = await alertService.getAll()
+    isLoadingAlerts.value = false
+}
+
+const openModal = async () => {
+    isModalOpen.value = true
+
+    if (!allAlerts.value.length) {
+        await fetchAllAlerts()
+    }
+}
+
 const lastUpdatedText = computed(() =>
     now.value.toLocaleString(undefined, { hour12: false })
 )
 
+
 const chartSeriesName = computed(() =>
-    period.value === 'day'
+    selectedPeriod.value === 'day'
         ? 'Power Usage Today'
         : 'Monthly Energy Usage'
 )
@@ -163,7 +198,8 @@ const chartOptions = computed(() => {
         series: [
             {
                 name: chartSeriesName.value,
-                type: 'line',
+                type: selectedPeriod.value === 'day' ? 'line' : 'bar',
+                boundaryGap: selectedPeriod.value !== 'day',
                 smooth: true,
 
                 data: activeChartData.value.map(item => item.value),
@@ -209,6 +245,13 @@ const chartOptions = computed(() => {
 onMounted(() => {
     fetchSummary()
     fetchChart()
+    fetchDevices()
+    fetchRecentAlerts()
+})
+
+watch(selectedPeriod, () => {
+    fetchSummary()
+    fetchChart()
 })
 </script>
 
@@ -229,13 +272,13 @@ onMounted(() => {
                         <span>Period:</span>
                         <div class="inline-flex rounded-md border bg-background p-0.5">
                             <Button variant="ghost" size="sm"
-                                :class="period === 'day' ? 'bg-primary text-primary-foreground' : ''"
-                                @click="period = 'day'">
+                                :class="selectedPeriod === 'day' ? 'bg-primary text-primary-foreground' : ''"
+                                @click="selectedPeriod = 'day'">
                                 Today
                             </Button>
                             <Button variant="ghost" size="sm"
-                                :class="period === 'month' ? 'bg-primary text-primary-foreground' : ''"
-                                @click="period = 'month'">
+                                :class="selectedPeriod === 'month' ? 'bg-primary text-primary-foreground' : ''"
+                                @click="selectedPeriod = 'month'">
                                 This Month
                             </Button>
                         </div>
@@ -251,7 +294,7 @@ onMounted(() => {
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">
-                            Total Energy (this month)
+                            Total Energy ({{ selectedPeriod === 'day' ? 'today' : 'this month' }})
                         </CardTitle>
                         <BoltIcon class="h-4 w-4 text-primary" />
                     </CardHeader>
@@ -270,7 +313,7 @@ onMounted(() => {
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">
-                            Estimated Bill (this month)
+                            Estimated Bill ({{ selectedPeriod === 'day' ? 'today' : 'this month' }})
                         </CardTitle>
                         <CircleDollarSignIcon class="h-4 w-4 text-primary" />
                     </CardHeader>
@@ -330,10 +373,10 @@ onMounted(() => {
                 <Card class="lg:col-span-2">
                     <CardHeader>
                         <CardTitle>
-                            {{ period === 'day' ? 'Today\'s Energy Usage' : 'Monthly Energy Usage' }}
+                            {{ selectedPeriod === 'day' ? 'Today\'s Energy Usage' : 'Monthly Energy Usage' }}
                         </CardTitle>
                         <CardDescription>
-                            Visual summary of your consumption {{ period === 'day' ? 'over the last 24 hours.' :
+                            Visual summary of your consumption {{ selectedPeriod === 'day' ? 'over the last 24 hours.' :
                                 'this month.' }}
                         </CardDescription>
                     </CardHeader>
@@ -356,7 +399,7 @@ onMounted(() => {
                     </CardHeader>
                     <CardContent class="space-y-3">
                         <template v-if="!activeDevices.length">
-                            <p class="text-sm text-muted-foreground">No devices registered yet.</p>
+                            <p class="text-sm text-muted-foreground">No activ device at the moment.</p>
                         </template>
                         <template v-else>
                             <div v-for="device in activeDevices" :key="device.id"
@@ -393,7 +436,7 @@ onMounted(() => {
                             Last few anomalies detected by the system.
                         </CardDescription>
                     </div>
-                    <Button variant="ghost" size="sm" to="/alerts">
+                    <Button variant="ghost" size="sm" to="/alerts" @click="openModal">
                         View all
                     </Button>
                 </CardHeader>
@@ -408,7 +451,7 @@ onMounted(() => {
                             class="flex items-start justify-between rounded-md border px-3 py-2 text-sm">
                             <div>
                                 <p class="font-medium">{{ alert.message }}</p>
-                                <p class="text-xs text-muted-foreground">{{ alert.time }}</p>
+                                <p class="text-xs text-muted-foreground">{{ formatTime(alert.triggered_at) }}</p>
                             </div>
                             <Badge :variant="alert.severity === 'high' ? 'destructive' : 'outline'"
                                 class="uppercase text-[10px]">
@@ -419,5 +462,19 @@ onMounted(() => {
                 </CardContent>
             </Card>
         </div>
+
+        <Dialog v-model:open="isModalOpen">
+            <DialogContent class="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>All Alerts</DialogTitle>
+                    <DialogDescription>
+                        Full list of detected anomalies.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <!-- Table goes here -->
+                <AlertTable :alerts="allAlerts" :loading="isLoadingAlerts" />
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

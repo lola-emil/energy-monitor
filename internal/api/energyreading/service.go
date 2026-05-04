@@ -43,35 +43,45 @@ func (s *ReadingService) Create(
 func (s *ReadingService) GetSummary(
 	ctx context.Context,
 	userID int64,
+	applianceID *int64,
+	rangeType string,
 ) (*energyreading.ReadingSummary, error) {
+
 	summary, err := s.repo.GetSummary(
 		ctx,
 		userID,
-		nil,
-		nil,
-		nil,
+		applianceID,
+		rangeType,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	settings, err := s.settingsRepo.GetByUserID(
-		ctx,
-		userID,
-	)
+	settings, err := s.settingsRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	summary.EstimatedCost =
-		(summary.TotalEnergyKWh * settings.RatePerKWh) +
-			settings.FixedMonthlyCharge
+	if rangeType == "today" {
+		summary.EstimatedCost =
+			(summary.TotalEnergyKWh * settings.RatePerKWh) +
+				(settings.FixedMonthlyCharge / 30.0)
+	} else {
+		summary.EstimatedCost =
+			(summary.TotalEnergyKWh * settings.RatePerKWh) +
+				settings.FixedMonthlyCharge
+	}
+
+	summary.BillingRate = settings.RatePerKWh
 
 	return summary, nil
 }
-
-func (s *ReadingService) GetEnergyChart(ctx context.Context, userID int64) ([]energyreading.ChartPoint, error) {
-	return s.repo.GetEnergyChart(ctx, userID, "monthly")
+func (s *ReadingService) GetEnergyChart(
+	ctx context.Context,
+	userID int64,
+	rangeType string,
+) ([]energyreading.ChartPoint, error) {
+	return s.repo.GetEnergyChart(ctx, userID, rangeType)
 }
 
 func (s *ReadingService) GetAnalytics(
@@ -81,7 +91,7 @@ func (s *ReadingService) GetAnalytics(
 	rangeType string,
 ) (*energyreading.AnalyticsResponse, error) {
 
-	// 1. Summary
+	// Summary
 	summary, err := s.repo.GetAnalyticsSummary(
 		ctx,
 		userID,
@@ -126,4 +136,24 @@ func (s *ReadingService) GetAnalytics(
 		Energy:         energy,
 		VoltageCurrent: vc,
 	}, nil
+}
+
+func (s *ReadingService) GetDetailedReadings(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) ([]energyreading.EnergyReading, error) {
+
+	readings, err := s.repo.GetDetailedReadings(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return readings, nil
 }
