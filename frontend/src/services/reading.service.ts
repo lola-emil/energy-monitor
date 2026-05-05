@@ -54,8 +54,10 @@ export const readingService = {
     },
 
     async getDetailedReadings(params: {
-        range: string
+        range: string,
         appliance_id?: number
+        page?: number,
+        page_size?: number,
     }) {
         const res = await api.get("/readings/detailed", { params })
         return res.data

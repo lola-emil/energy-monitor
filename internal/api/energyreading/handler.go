@@ -131,7 +131,6 @@ func (h *ReadingHandler) GetAnalytics(
 
 	json.NewEncoder(w).Encode(data)
 }
-
 func (h *ReadingHandler) GetDetailedReadings(w http.ResponseWriter, r *http.Request) {
 	userID := httputil.GetUserID(r)
 
@@ -140,22 +139,37 @@ func (h *ReadingHandler) GetDetailedReadings(w http.ResponseWriter, r *http.Requ
 		rangeType = "today"
 	}
 
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page <= 0 {
+		page = 1
+	}
+
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+
 	var applianceID *int64
 	if idStr := r.URL.Query().Get("appliance_id"); idStr != "" && idStr != "all" {
 		id, _ := strconv.ParseInt(idStr, 10, 64)
 		applianceID = &id
 	}
 
-	data, err := h.service.GetDetailedReadings(
+	data, total, err := h.service.GetDetailedReadings(
 		r.Context(),
 		userID,
 		applianceID,
 		rangeType,
+		page,
+		pageSize,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	json.NewEncoder(w).Encode(data)
+	json.NewEncoder(w).Encode(map[string]any{
+		"data":  data,
+		"total": total,
+	})
 }

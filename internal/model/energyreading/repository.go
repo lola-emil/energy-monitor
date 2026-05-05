@@ -61,7 +61,9 @@ type ReadingRepository interface {
 		userID int64,
 		applianceID *int64,
 		rangeType string,
-	) ([]EnergyReading, error)
+		limit int,
+		offset int,
+	) ([]EnergyReading, int, error)
 }
 
 func NewReadingRepository(db *sqlx.DB) ReadingRepository {
@@ -607,11 +609,35 @@ func (r *readingRepo) GetDetailedReadings(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
-) ([]EnergyReading, error) {
+	limit int,
+	offset int,
+) ([]EnergyReading, int, error) {
 
 	condition := buildRangeCondition(rangeType)
 
-	query := fmt.Sprintf(`
+	// 🔥 total count (for pagination)
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM energy_readings er
+		JOIN appliances a ON a.id = er.appliance_id
+		WHERE
+			a.user_id = $1
+			AND %s
+			%s
+	`, condition, buildApplianceFilter(applianceID, 2))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
+
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// 🔥 paginated data
+	dataQuery := fmt.Sprintf(`
 		SELECT
 			er.ts,
 			er.voltage,
@@ -625,17 +651,14 @@ func (r *readingRepo) GetDetailedReadings(
 			AND %s
 			%s
 		ORDER BY er.ts DESC
-		LIMIT 100
-	`, condition, buildApplianceFilter(applianceID, 2))
+		LIMIT $%d OFFSET $%d
+	`, condition, buildApplianceFilter(applianceID, 2), len(args)+1, len(args)+2)
 
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
+	args = append(args, limit, offset)
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -650,14 +673,17 @@ func (r *readingRepo) GetDetailedReadings(
 			&r.Power,
 			&r.EnergyKWh,
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		result = append(result, r)
 	}
 
-	return result, nil
-}
+	if result == nil {
+		result = []EnergyReading{}
+	}
 
+	return result, total, nil
+}
 func groupByUnit(rangeType string) string {
 	switch rangeType {
 	case "today":

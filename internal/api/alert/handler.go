@@ -60,3 +60,31 @@ func (h *AlertHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *AlertHandler) GetAnalyticsAlerts(w http.ResponseWriter, r *http.Request) {
+	userID := httputil.GetUserID(r)
+
+	rangeType := r.URL.Query().Get("range")
+	if rangeType == "" {
+		rangeType = "today"
+	}
+
+	var applianceID *int64
+	if idStr := r.URL.Query().Get("appliance_id"); idStr != "" && idStr != "all" {
+		id, _ := strconv.ParseInt(idStr, 10, 64)
+		applianceID = &id
+	}
+
+	data, err := h.service.GetAnalyticsAlerts(
+		r.Context(),
+		userID,
+		applianceID,
+		rangeType,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}

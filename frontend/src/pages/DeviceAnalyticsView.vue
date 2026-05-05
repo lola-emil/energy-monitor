@@ -415,7 +415,7 @@ onMounted(async () => {
             </div>
 
             <!-- Charts -->
-            <div class="grid gap-4 lg:grid-cols-3">
+            <div class="grid gap-4 lg:grid-cols-1">
                 <!-- Real-time power chart -->
                 <Card class="lg:col-span-2">
                     <CardHeader>
@@ -433,7 +433,7 @@ onMounted(async () => {
                 </Card>
 
                 <!-- Today usage chart -->
-                <Card>
+                <!-- <Card>
                     <CardHeader>
                         <CardTitle>Today&apos;s usage</CardTitle>
                         <CardDescription>
@@ -445,7 +445,7 @@ onMounted(async () => {
                             <VChart class="h-72 w-full" :option="todayUsageChartOptions" autoresize />
                         </div>
                     </CardContent>
-                </Card>
+                </Card> -->
             </div>
 
             <!-- Alerts -->

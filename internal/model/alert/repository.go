@@ -42,6 +42,14 @@ type AlertRepository interface {
 		applianceID int64,
 		alertType AlertType,
 	) error
+
+	GetAnalyticsAlerts(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		rangeType string,
+		limit int,
+	) ([]Alert, error)
 }
 
 func NewAlertRepository(db *sqlx.DB) *alertRepo {
@@ -219,4 +227,132 @@ func (r *alertRepo) ResolveActiveAlert(
 	)
 
 	return err
+}
+
+func (r *alertRepo) GetAnalyticsAlerts(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+	limit int,
+) ([]Alert, error) {
+
+	condition := buildRangeCondition(rangeType)
+
+	query := fmt.Sprintf(`
+		SELECT
+			al.id,
+			al.message,
+			al.severity,
+			al.created_at,
+			a.name
+		FROM alerts al
+		JOIN appliances a ON a.id = al.appliance_id
+		WHERE
+			a.user_id = $1
+			AND %s
+			%s
+		ORDER BY al.created_at DESC
+		LIMIT $%d
+	`, condition, buildApplianceFilter(applianceID, 2), 2+boolToInt(applianceID != nil))
+
+	args := []any{userID}
+	if applianceID != nil {
+		args = append(args, *applianceID)
+	}
+	args = append(args, limit)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []Alert
+
+	for rows.Next() {
+		var a Alert
+		if err := rows.Scan(
+			&a.ID,
+			&a.Message,
+			&a.Severity,
+			&a.TriggeredAt,
+			&a.ApplianceID,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, a)
+	}
+
+	if result == nil {
+		result = []Alert{}
+	}
+
+	return result, nil
+}
+
+func groupByUnit(rangeType string) string {
+	switch rangeType {
+	case "today":
+		return "hour"
+	case "7d":
+		return "day"
+	case "month":
+		return "day"
+	default:
+		return "hour"
+	}
+}
+
+func buildLabelFormat(rangeType string) string {
+	switch rangeType {
+	case "today":
+		return "HH24:00"
+	case "7d":
+		return "MM-DD"
+	case "month":
+		return "DD"
+	default:
+		return "HH24:00"
+	}
+}
+
+func buildApplianceFilter(applianceID *int64, paramIndex int) string {
+	if applianceID == nil {
+		return ""
+	}
+	return fmt.Sprintf("AND er.appliance_id = $%d", paramIndex)
+}
+
+func buildRangeQuery(rangeType string) (interval string, labelFormat string) {
+	switch rangeType {
+	case "today":
+		return "INTERVAL '1 day'", "HH24:00"
+	case "7d":
+		return "INTERVAL '7 days'", "YYYY-MM-DD"
+	case "month":
+		return "INTERVAL '30 days'", "YYYY-MM-DD"
+	default:
+		return "INTERVAL '1 day'", "HH24:00"
+	}
+}
+
+func buildRangeCondition(rangeType string) string {
+	switch rangeType {
+	case "today":
+		return "er.ts >= date_trunc('day', NOW())"
+	case "7d":
+		return "er.ts >= NOW() - INTERVAL '7 days'"
+	case "month":
+		return "er.ts >= date_trunc('month', NOW())"
+	default:
+		return "er.ts >= date_trunc('day', NOW())"
+	}
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

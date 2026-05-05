@@ -35,6 +35,7 @@ import { readingService } from '@/services/reading.service'
 import type { Appliance } from '@/types/appliance'
 import { applianceService } from '@/services/appliance.service'
 import { formatTime } from "@/lib/time"
+import { alertService } from "@/services/alert.service"
 
 use([
     CanvasRenderer,
@@ -63,23 +64,25 @@ const defaultAnalytics: AnalyticsResponse = {
 const detailedReadings = ref<any[]>([])
 const isLoadingTable = ref(false)
 
+const total = ref(0)
+
+const page = ref(1)
+const pageSize = ref(10)
+
 const fetchDetailedReadings = async () => {
-    try {
-        isLoadingTable.value = true
+    isLoadingTable.value = true
 
-        const data = await readingService.getDetailedReadings({
-            range: selectedRange.value,
-            appliance_id: selectedAppliance.value ?? undefined,
-        })
+    const res = await readingService.getDetailedReadings({
+        range: selectedRange.value,
+        appliance_id: selectedAppliance.value ?? undefined,
+        page: page.value,
+        page_size: pageSize.value,
+    })
 
-        detailedReadings.value = Array.isArray(data) ? data : []
+    detailedReadings.value = res.data || []
+    total.value = res.total || 0
 
-    } catch (err) {
-        console.error("Failed to fetch readings:", err)
-        detailedReadings.value = [] // fallback
-    } finally {
-        isLoadingTable.value = false
-    }
+    isLoadingTable.value = false
 }
 
 const isAppliancesLoading = ref(false);
@@ -121,17 +124,27 @@ const isLoading = ref(true)
 
 const lastUpdated = ref(new Date())
 
-const readings = ref([
-    { time: '2026-04-23 10:00', voltage: 229, current: 2.1, power: 482, energy: 0.48 },
-    { time: '2026-04-23 10:05', voltage: 230, current: 2.0, power: 460, energy: 0.46 },
-    { time: '2026-04-23 10:10', voltage: 231, current: 2.3, power: 531, energy: 0.53 }
-])
-
 // Alerts in selected period
-const alerts = ref([
-    { id: 1, time: '2026-04-22 16:05', device: 'Office Load', message: 'Device went offline', severity: 'medium' },
-    { id: 2, time: '2026-04-21 09:12', device: 'Main Meter', message: 'Voltage exceeded 250 V', severity: 'high' }
-])
+const alerts = ref<any[]>([])
+const isLoadingAlerts = ref(false)
+
+const fetchAlerts = async () => {
+  try {
+    isLoadingAlerts.value = true
+
+    const data = await alertService.getAnalyticsAlerts({
+      range: selectedRange.value,
+      appliance_id: selectedAppliance.value ?? undefined,
+    })
+
+    alerts.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error(e)
+    alerts.value = []
+  } finally {
+    isLoadingAlerts.value = false
+  }
+}
 
 const lastUpdatedText = computed(() =>
     lastUpdated.value.toLocaleString(undefined, { hour12: false })
@@ -338,10 +351,15 @@ onMounted(() => {
     fetchAnalytics();
     fetchAppliances();
     fetchDetailedReadings();
+    fetchAlerts()
 })
 
 watch([selectedRange, selectedAppliance], () => {
     fetchAnalytics()
+    fetchAlerts()
+})
+
+watch([selectedRange, selectedAppliance, page], () => {
     fetchDetailedReadings()
 })
 
@@ -546,6 +564,22 @@ watch([selectedRange, selectedAppliance], () => {
                         </Button>
                     </CardHeader>
                     <CardContent>
+                        <div class="w-max mb-3">
+                            <div class="flex justify-between items-center mt-4 gap-3">
+                                <Button variant="outline" size="sm" :disabled="page === 1" @click="page--">
+                                    Previous
+                                </Button>
+
+                                <span class="text-sm text-muted-foreground">
+                                    Page {{ page }} of {{ Math.ceil(total / pageSize) }}
+                                </span>
+
+                                <Button variant="outline" size="sm" :disabled="page >= Math.ceil(total / pageSize)"
+                                    @click="page++">
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
                         <div class="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -597,7 +631,7 @@ watch([selectedRange, selectedAppliance], () => {
                     </CardHeader>
                     <CardContent>
                         <div v-if="!alerts.length"
-                            class="flex flex-col items-center justify-center py-6 text-sm text-muted-foreground">
+                            class="flex flex-col items-center justify-center py-6 text-sm text-muted-foreground h-full">
                             <AlertTriangleIcon class="mb-2 h-5 w-5" />
                             No alerts in the selected range.
                         </div>

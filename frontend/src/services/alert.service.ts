@@ -17,4 +17,12 @@ export const alertService = {
     const res = await api.get("/alerts")
     return res.data
   },
+  
+  async getAnalyticsAlerts(params: {
+    range: string
+    appliance_id?: number
+  }) {
+    const res = await api.get("/alerts/analytics", { params })
+    return res.data
+  }
 }

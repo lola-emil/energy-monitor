@@ -24,3 +24,19 @@ func (s *AlertService) Resolve(ctx context.Context, userID, id int64) error {
 func (s *AlertService) Get(ctx context.Context, userID, id int64) (*alert.Alert, error) {
 	return s.repo.GetByID(ctx, userID, id)
 }
+
+func (s *AlertService) GetAnalyticsAlerts(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+) ([]alert.Alert, error) {
+
+	return s.repo.GetAnalyticsAlerts(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+		5, // preview limit
+	)
+}

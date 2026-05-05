@@ -143,17 +143,18 @@ func (s *ReadingService) GetDetailedReadings(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
-) ([]energyreading.EnergyReading, error) {
+	page int,
+	pageSize int,
+) ([]energyreading.EnergyReading, int, error) {
 
-	readings, err := s.repo.GetDetailedReadings(
+	offset := (page - 1) * pageSize
+
+	return s.repo.GetDetailedReadings(
 		ctx,
 		userID,
 		applianceID,
 		rangeType,
+		pageSize,
+		offset,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return readings, nil
 }
