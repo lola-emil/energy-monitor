@@ -88,3 +88,26 @@ func (h *AlertHandler) GetAnalyticsAlerts(w http.ResponseWriter, r *http.Request
 
 	json.NewEncoder(w).Encode(data)
 }
+
+func (h *AlertHandler) GetByAppliance(w http.ResponseWriter, r *http.Request) {
+	userID := httputil.GetUserID(r)
+
+	idStr := chi.URLParam(r, "id")
+	applianceID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid appliance id", 400)
+		return
+	}
+
+	data, err := h.service.GetRecentByAppliance(
+		r.Context(),
+		userID,
+		applianceID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	json.NewEncoder(w).Encode(data)
+}

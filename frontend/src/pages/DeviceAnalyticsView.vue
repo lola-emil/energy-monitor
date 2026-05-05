@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
     Card,
@@ -38,6 +38,7 @@ import { useThemeColors } from '@/composables/useThemeColors'
 import { sseService } from "@/services/sse.service"
 import { applianceService } from "@/services/appliance.service"
 import type { Appliance } from '@/types/appliance';
+import { alertService } from '@/services/alert.service'
 
 use([
     CanvasRenderer,
@@ -66,7 +67,7 @@ const frequency = ref<number | null>(null)
 const todayEnergy = ref<number | null>(null)
 
 // Real‑time series for last N minutes (power vs time)
-const realtimeSeries = ref<{time: string, power: number}[]>([])
+const realtimeSeries = ref<{ time: string, power: number }[]>([])
 
 // Simple “today” energy profile
 const dailyEnergySeries = ref([
@@ -76,12 +77,26 @@ const dailyEnergySeries = ref([
     { hour: '18:00', energy: 0.6 }
 ])
 
-// Alerts for this appliance
-const alerts = ref([
-    { id: 1, time: '2026-04-22 16:05', message: 'Appliance went offline', severity: 'medium' },
-    { id: 2, time: '2026-04-21 09:12', message: 'Voltage exceeded 250 V', severity: 'high' }
-])
 
+const alerts = ref<any[]>([])
+const isLoadingAlerts = ref(false)
+
+const fetchAlerts = async () => {
+    if (!applianceId) return
+
+    try {
+        isLoadingAlerts.value = true
+
+        const data = await alertService.getAlertsByAppliance(parseInt(applianceId))
+
+        alerts.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error(e)
+        alerts.value = []
+    } finally {
+        isLoadingAlerts.value = false
+    }
+}
 
 const lastUpdatedText = computed(() => appliance.value?.updated_at ?? '—')
 
@@ -257,6 +272,10 @@ const updateRealtimeChart = (payload: any) => {
         realtimeSeries.value.shift()
     }
 }
+
+onMounted(fetchAlerts)
+
+watch(() => applianceId, fetchAlerts)
 
 onMounted(async () => {
 

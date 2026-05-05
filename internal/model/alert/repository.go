@@ -50,6 +50,13 @@ type AlertRepository interface {
 		rangeType string,
 		limit int,
 	) ([]Alert, error)
+
+	GetRecentByAppliance(
+		ctx context.Context,
+		userID int64,
+		applianceID int64,
+		limit int,
+	) ([]Alert, error)
 }
 
 func NewAlertRepository(db *sqlx.DB) *alertRepo {
@@ -244,7 +251,7 @@ func (r *alertRepo) GetAnalyticsAlerts(
 			al.id,
 			al.message,
 			al.severity,
-			al.created_at,
+			al.triggered_at,
 			a.name
 		FROM alerts al
 		JOIN appliances a ON a.id = al.appliance_id
@@ -252,7 +259,7 @@ func (r *alertRepo) GetAnalyticsAlerts(
 			a.user_id = $1
 			AND %s
 			%s
-		ORDER BY al.created_at DESC
+		ORDER BY al.triggered_at DESC
 		LIMIT $%d
 	`, condition, buildApplianceFilter(applianceID, 2), 2+boolToInt(applianceID != nil))
 
@@ -278,6 +285,56 @@ func (r *alertRepo) GetAnalyticsAlerts(
 			&a.Severity,
 			&a.TriggeredAt,
 			&a.ApplianceID,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, a)
+	}
+
+	if result == nil {
+		result = []Alert{}
+	}
+
+	return result, nil
+}
+
+func (r *alertRepo) GetRecentByAppliance(
+	ctx context.Context,
+	userID int64,
+	applianceID int64,
+	limit int,
+) ([]Alert, error) {
+
+	query := `
+		SELECT
+			al.id,
+			al.message,
+			al.severity,
+			al.triggered_at
+		FROM alerts al
+		JOIN appliances a ON a.id = al.appliance_id
+		WHERE
+			a.user_id = $1
+			AND a.id = $2
+		ORDER BY al.triggered_at DESC
+		LIMIT $3;
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID, applianceID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []Alert
+
+	for rows.Next() {
+		var a Alert
+		if err := rows.Scan(
+			&a.ID,
+			&a.Message,
+			&a.Severity,
+			&a.TriggeredAt,
 		); err != nil {
 			return nil, err
 		}

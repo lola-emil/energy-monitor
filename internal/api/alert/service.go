@@ -37,6 +37,20 @@ func (s *AlertService) GetAnalyticsAlerts(
 		userID,
 		applianceID,
 		rangeType,
-		5, // preview limit
+		5,
+	)
+}
+
+func (s *AlertService) GetRecentByAppliance(
+	ctx context.Context,
+	userID int64,
+	applianceID int64,
+) ([]alert.Alert, error) {
+
+	return s.repo.GetRecentByAppliance(
+		ctx,
+		userID,
+		applianceID,
+		5,
 	)
 }
