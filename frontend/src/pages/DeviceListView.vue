@@ -187,7 +187,7 @@ onMounted(() => {
                     <CardFooter class="flex items-center justify-end gap-2">
 
                         <Button size="sm" variant="outline" @click="$router.push(`/devices/${appliance.id}`)">
-                            View details
+                            View Monitor
                         </Button>
                         <EditDeviceModal :appliance="appliance" @submit="handleUpdateAppliance" />
                         <DeleteDeviceAlert :appliance="appliance" @submit="handleDeleteAppliance" />
