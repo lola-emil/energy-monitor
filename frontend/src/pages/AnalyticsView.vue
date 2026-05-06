@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { Table, TableHeader, TableRow, TableHead, TableCell, TableBody } from "@/components/ui/table"
 import { ref, computed, onMounted, watch } from 'vue'
+import {
+    Table,
+    TableHeader,
+    TableRow,
+    TableHead,
+    TableCell,
+    TableBody,
+} from '@/components/ui/table'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
@@ -12,30 +19,23 @@ import {
     GaugeIcon,
     ActivityIcon,
     CalendarRangeIcon,
-    AlertTriangleIcon
+    AlertTriangleIcon,
+    DownloadIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
 } from 'lucide-vue-next'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
-import {
-    CanvasRenderer
-} from 'echarts/renderers'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 
-import {
-    LineChart
-} from 'echarts/charts'
-
-import {
-    GridComponent,
-    TooltipComponent,
-    LegendComponent
-} from 'echarts/components'
 import { useThemeColors } from '@/composables/useThemeColors'
-import type { AnalyticsResponse } from '@/services/reading.service';
-import { readingService } from '@/services/reading.service'
-import type { Appliance } from '@/types/appliance'
+import { readingService, type AnalyticsResponse } from '@/services/reading.service'
 import { applianceService } from '@/services/appliance.service'
-import { formatTime } from "@/lib/time"
-import { alertService } from "@/services/alert.service"
+import { alertService } from '@/services/alert.service'
+import type { Appliance } from '@/types/appliance'
+import { formatTime } from '@/lib/time'
 
 use([
     CanvasRenderer,
@@ -45,10 +45,28 @@ use([
     LegendComponent,
 ])
 
+type RangeType = 'today' | '7d' | 'month'
+
 const { colors } = useThemeColors()
 
-const selectedRange = ref<'today' | '7d' | 'month'>('today')
-const selectedAppliance = ref<number | null>(null)
+const selectedRange = ref<RangeType>('today')
+const selectedAppliance = ref<string>('all')
+
+const lastUpdated = ref(new Date())
+
+const isLoading = ref(true)
+const isLoadingTable = ref(false)
+const isLoadingAlerts = ref(false)
+const isAppliancesLoading = ref(false)
+
+const appliances = ref<Appliance[]>([])
+const alerts = ref<any[]>([])
+const detailedReadings = ref<any[]>([])
+
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(10)
+
 const defaultAnalytics: AnalyticsResponse = {
     summary: {
         total_energy_kwh: 0,
@@ -61,94 +79,117 @@ const defaultAnalytics: AnalyticsResponse = {
     voltage_current: [],
 }
 
-const detailedReadings = ref<any[]>([])
-const isLoadingTable = ref(false)
+const analyticsData = ref<AnalyticsResponse>(defaultAnalytics)
 
-const total = ref(0)
+const selectedApplianceId = computed<number | undefined>(() => {
+    if (selectedAppliance.value === 'all') return undefined
+    return Number(selectedAppliance.value)
+})
 
-const page = ref(1)
-const pageSize = ref(10)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
-const fetchDetailedReadings = async () => {
-    isLoadingTable.value = true
+const selectedApplianceLabel = computed(() => {
+    if (selectedAppliance.value === 'all') return 'All devices'
+    const found = appliances.value.find(a => String(a.id) === selectedAppliance.value)
+    return found?.name ?? 'Selected device'
+})
 
-    const res = await readingService.getDetailedReadings({
-        range: selectedRange.value,
-        appliance_id: selectedAppliance.value ?? undefined,
-        page: page.value,
-        page_size: pageSize.value,
+const lastUpdatedText = computed(() =>
+    lastUpdated.value.toLocaleString(undefined, {
+        hour12: false,
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
     })
+)
 
-    detailedReadings.value = res.data || []
-    total.value = res.total || 0
+const rangeLabel = computed(() => {
+    switch (selectedRange.value) {
+        case 'today':
+            return 'Today'
+        case '7d':
+            return 'Last 7 days'
+        case 'month':
+            return 'This month'
+    }
+})
 
-    isLoadingTable.value = false
-}
-
-const isAppliancesLoading = ref(false);
-const appliances = ref<Appliance[]>([])
+const hasEnergyData = computed(() => analyticsData.value.energy?.length > 0)
+const hasVoltageData = computed(() => analyticsData.value.voltage_current?.length > 0)
 
 const fetchAppliances = async () => {
     try {
-        isAppliancesLoading.value = true;
-
-        const data = await applianceService.getAll();
-
-        appliances.value = data
-        console.log(appliances.value)
+        isAppliancesLoading.value = true
+        appliances.value = await applianceService.getAll()
     } catch (err) {
-        console.error("Appliance list error:", err)
+        console.error('Appliance list error:', err)
+        appliances.value = []
     } finally {
-        isAppliancesLoading.value = false;
+        isAppliancesLoading.value = false
     }
 }
-
-const analyticsData = ref<AnalyticsResponse>(defaultAnalytics)
 
 const fetchAnalytics = async () => {
     try {
         isLoading.value = true
-
         analyticsData.value = await readingService.getAnalytics({
             range: selectedRange.value,
-            appliance_id: selectedAppliance.value ?? undefined,
+            appliance_id: selectedApplianceId.value,
         })
+        lastUpdated.value = new Date()
     } catch (err) {
-        console.error("Analytics error:", err)
+        console.error('Analytics error:', err)
+        analyticsData.value = defaultAnalytics
     } finally {
         isLoading.value = false
     }
 }
 
-const isLoading = ref(true)
-
-const lastUpdated = ref(new Date())
-
-// Alerts in selected period
-const alerts = ref<any[]>([])
-const isLoadingAlerts = ref(false)
-
-const fetchAlerts = async () => {
-  try {
-    isLoadingAlerts.value = true
-
-    const data = await alertService.getAnalyticsAlerts({
-      range: selectedRange.value,
-      appliance_id: selectedAppliance.value ?? undefined,
-    })
-
-    alerts.value = Array.isArray(data) ? data : []
-  } catch (e) {
-    console.error(e)
-    alerts.value = []
-  } finally {
-    isLoadingAlerts.value = false
-  }
+const fetchDetailedReadings = async () => {
+    try {
+        isLoadingTable.value = true
+        const res = await readingService.getDetailedReadings({
+            range: selectedRange.value,
+            appliance_id: selectedApplianceId.value,
+            page: page.value,
+            page_size: pageSize.value,
+        })
+        detailedReadings.value = res.data || []
+        total.value = res.total || 0
+    } catch (err) {
+        console.error('Detailed readings error:', err)
+        detailedReadings.value = []
+        total.value = 0
+    } finally {
+        isLoadingTable.value = false
+    }
 }
 
-const lastUpdatedText = computed(() =>
-    lastUpdated.value.toLocaleString(undefined, { hour12: false })
-)
+const fetchAlerts = async () => {
+    try {
+        isLoadingAlerts.value = true
+        const data = await alertService.getAnalyticsAlerts({
+            range: selectedRange.value,
+            appliance_id: selectedApplianceId.value,
+        })
+        alerts.value = Array.isArray(data) ? data : []
+    } catch (err) {
+        console.error('Alerts error:', err)
+        alerts.value = []
+    } finally {
+        isLoadingAlerts.value = false
+    }
+}
+
+const refreshAll = async () => {
+    await Promise.all([
+        fetchAnalytics(),
+        fetchDetailedReadings(),
+        fetchAlerts(),
+    ])
+}
 
 const energyChartOptions = computed(() => {
     if (!colors.value) return {}
@@ -162,19 +203,18 @@ const energyChartOptions = computed(() => {
                 color: colors.value.cardForeground,
             },
             formatter: (params: any) => {
-                const item = params[0]
-                return `${item.axisValue}<br/>${item.value.toFixed(2)} kWh`
+                const item = params?.[0]
+                if (!item) return ''
+                return `${item.axisValue}<br/>${Number(item.value).toFixed(2)} kWh`
             },
         },
-
         grid: {
             left: 10,
             right: 10,
-            top: 20,
+            top: 24,
             bottom: 10,
             containLabel: true,
         },
-
         xAxis: {
             type: 'category',
             boundaryGap: false,
@@ -187,8 +227,10 @@ const energyChartOptions = computed(() => {
                     color: colors.value.border,
                 },
             },
+            axisTick: {
+                show: false,
+            },
         },
-
         yAxis: {
             type: 'value',
             axisLabel: {
@@ -200,8 +242,10 @@ const energyChartOptions = computed(() => {
                     opacity: 0.3,
                 },
             },
+            axisTick: {
+                show: false,
+            },
         },
-
         series: [
             {
                 name: 'Energy Usage',
@@ -209,29 +253,23 @@ const energyChartOptions = computed(() => {
                 smooth: true,
                 showSymbol: true,
                 symbol: 'circle',
-                symbolSize: 8,
-
+                symbolSize: 7,
                 data: analyticsData.value.energy?.map(i => i.value),
-
                 lineStyle: {
                     width: 3,
                     color: colors.value.chart1,
                 },
-
-                areaStyle: {
-                    opacity: 0.18,
+                itemStyle: {
                     color: colors.value.chart1,
                 },
-
-                emphasis: {
-                    focus: 'none',
-                    scale: false,
+                areaStyle: {
+                    opacity: 0.15,
+                    color: colors.value.chart1,
                 },
             },
         ],
     }
 })
-
 
 const voltageChartOptions = computed(() => {
     if (!colors.value) return {}
@@ -241,8 +279,16 @@ const voltageChartOptions = computed(() => {
             trigger: 'axis',
             backgroundColor: colors.value.card,
             borderColor: colors.value.border,
+            textStyle: {
+                color: colors.value.cardForeground,
+            },
         },
-
+        legend: {
+            top: 0,
+            textStyle: {
+                color: colors.value.mutedForeground,
+            },
+        },
         grid: {
             left: 20,
             right: 20,
@@ -250,15 +296,21 @@ const voltageChartOptions = computed(() => {
             bottom: 20,
             containLabel: true,
         },
-
         xAxis: {
             type: 'category',
             data: analyticsData.value.voltage_current?.map(i => i.label),
             axisLabel: {
                 color: colors.value.mutedForeground,
             },
+            axisLine: {
+                lineStyle: {
+                    color: colors.value.border,
+                },
+            },
+            axisTick: {
+                show: false,
+            },
         },
-
         yAxis: [
             {
                 type: 'value',
@@ -266,15 +318,12 @@ const voltageChartOptions = computed(() => {
                 min: 180,
                 max: 260,
                 interval: 20,
-
                 axisLabel: {
                     color: colors.value.mutedForeground,
                 },
-
                 nameTextStyle: {
                     color: colors.value.mutedForeground,
                 },
-
                 splitLine: {
                     show: true,
                     lineStyle: {
@@ -282,45 +331,36 @@ const voltageChartOptions = computed(() => {
                         opacity: 0.3,
                     },
                 },
-
                 axisLine: {
                     show: false,
                 },
-
                 axisTick: {
                     show: false,
                 },
             },
-
             {
                 type: 'value',
                 name: 'Current',
                 min: 0,
                 max: 3.5,
                 interval: 0.5,
-
                 axisLabel: {
                     color: colors.value.mutedForeground,
                 },
-
                 nameTextStyle: {
                     color: colors.value.mutedForeground,
                 },
-
                 splitLine: {
-                    show: false, // 🔥 important fix
+                    show: false,
                 },
-
                 axisLine: {
                     show: false,
                 },
-
                 axisTick: {
                     show: false,
                 },
             },
         ],
-
         series: [
             {
                 name: 'Voltage',
@@ -331,6 +371,10 @@ const voltageChartOptions = computed(() => {
                     width: 3,
                     color: colors.value.chart1,
                 },
+                itemStyle: {
+                    color: colors.value.chart1,
+                },
+                showSymbol: false,
             },
             {
                 name: 'Current',
@@ -342,320 +386,403 @@ const voltageChartOptions = computed(() => {
                     width: 3,
                     color: colors.value.chart2,
                 },
+                itemStyle: {
+                    color: colors.value.chart2,
+                },
+                showSymbol: false,
             },
         ],
     }
 })
 
-onMounted(() => {
-    fetchAnalytics();
-    fetchAppliances();
-    fetchDetailedReadings();
-    fetchAlerts()
+const prevPage = () => {
+    if (page.value > 1) page.value--
+}
+
+const nextPage = () => {
+    if (page.value < totalPages.value) page.value++
+}
+
+onMounted(async () => {
+    await fetchAppliances()
+    await refreshAll()
 })
 
-watch([selectedRange, selectedAppliance], () => {
-    fetchAnalytics()
-    fetchAlerts()
+watch([selectedRange, selectedAppliance], async () => {
+    page.value = 1
+    await refreshAll()
 })
 
-watch([selectedRange, selectedAppliance, page], () => {
-    fetchDetailedReadings()
-})
-
-// TODO: add watchers on selectedDeviceId / selectedRange to refetch real data from your API.
+watch(page, fetchDetailedReadings)
 </script>
 
 <template>
-    <div class="px-5 mt-5">
-        <div class="flex flex-col gap-6">
-            <!-- Header / filters -->
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
+    <div class="min-h-screen bg-muted/20">
+        <div class="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <section
+                class="flex flex-col gap-4 rounded-2xl border bg-background px-5 py-5 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div class="space-y-1">
                     <h1 class="text-2xl font-semibold tracking-tight">Analytics</h1>
                     <p class="text-sm text-muted-foreground">
-                        Detailed historical and real-time energy data, with charts and tables.
+                        Explore historical energy usage, electrical measurements, and alerts across devices.
                     </p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <!-- Device selector -->
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+                    <!-- Device -->
                     <div class="flex items-center gap-2">
-                        <span class="whitespace-nowrap">Device:</span>
+                        <span class="whitespace-nowrap text-xs text-muted-foreground">Device:</span>
                         <Select v-model="selectedAppliance">
                             <SelectTrigger class="w-45">
-                                <SelectValue placeholder="Select device" />
+                                <SelectValue
+                                    :placeholder="isAppliancesLoading ? 'Loading devices...' : 'Select device'" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All devices</SelectItem>
-                                <SelectItem v-for="dev in appliances" :key="dev.id" :value="dev.id">
+                                <SelectItem v-for="dev in appliances" :key="dev.id" :value="String(dev.id)">
                                     {{ dev.name }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
-                    <!-- Range selector -->
+                    <!-- Range -->
                     <div class="flex items-center gap-2">
-                        <span class="whitespace-nowrap">Range:</span>
-                        <div class="inline-flex rounded-md border bg-background p-0.5">
-                            <Button size="sm" variant="ghost"
-                                :class="selectedRange === 'today' ? 'bg-primary text-primary-foreground' : ''"
-                                @click="selectedRange = 'today'">
+                        <span class="whitespace-nowrap text-xs text-muted-foreground">Range:</span>
+                        <div class="inline-flex rounded-xl border bg-muted/30 p-1">
+                            <Button size="sm" variant="ghost" class="rounded-lg" :class="selectedRange === 'today'
+                                ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                                : ''" @click="selectedRange = 'today'">
                                 Today
                             </Button>
-                            <Button size="sm" variant="ghost"
-                                :class="selectedRange === '7d' ? 'bg-primary text-primary-foreground' : ''"
-                                @click="selectedRange = '7d'">
+                            <Button size="sm" variant="ghost" class="rounded-lg" :class="selectedRange === '7d'
+                                ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                                : ''" @click="selectedRange = '7d'">
                                 Last 7 days
                             </Button>
-                            <Button size="sm" variant="ghost"
-                                :class="selectedRange === 'month' ? 'bg-primary text-primary-foreground' : ''"
-                                @click="selectedRange = 'month'">
+                            <Button size="sm" variant="ghost" class="rounded-lg" :class="selectedRange === 'month'
+                                ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                                : ''" @click="selectedRange = 'month'">
                                 This month
                             </Button>
                         </div>
                     </div>
 
-                    <Separator orientation="vertical" class="hidden h-6 md:block" />
-                    <div class="flex items-center gap-1">
-                        <CalendarRangeIcon class="h-3 w-3" />
+                    <Separator orientation="vertical" class="hidden h-6 lg:block" />
+
+                    <div
+                        class="flex items-center gap-1 rounded-xl border bg-background px-3 py-2 text-xs text-muted-foreground">
+                        <CalendarRangeIcon class="h-3.5 w-3.5" />
                         <span>Last updated: {{ lastUpdatedText }}</span>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            <!-- Filter summary -->
+            <section class="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" class="rounded-full px-3 py-1">
+                    {{ selectedApplianceLabel }}
+                </Badge>
+                <Badge variant="outline" class="rounded-full px-3 py-1">
+                    {{ rangeLabel }}
+                </Badge>
+            </section>
 
             <!-- Summary cards -->
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <!-- Energy -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Energy used</CardTitle>
-                        <BoltIcon class="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <p class="text-2xl font-bold">
-                            <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ analyticsData.summary.total_energy_kwh.toFixed(2) }} kWh</span>
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Total in selected period.
-                        </p>
+            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <Card class="rounded-2xl shadow-sm">
+                    <CardContent class="p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-2">
+                                <p class="text-sm font-medium text-muted-foreground">Energy Used</p>
+                                <div class="text-2xl font-semibold tracking-tight">
+                                    <Skeleton v-if="isLoading" class="h-8 w-24" />
+                                    <span v-else>{{ analyticsData.summary.total_energy_kwh.toFixed(2) }} kWh</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground">Total for selected range.</p>
+                            </div>
+                            <div class="rounded-xl bg-primary/10 p-2 text-primary">
+                                <BoltIcon class="h-4 w-4" />
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 
-                <!-- Avg Power -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Average power</CardTitle>
-                        <GaugeIcon class="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <p class="text-2xl font-bold">
-                            <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ analyticsData.summary.avg_power.toFixed(2) }} W</span>
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            From all readings in this range.
-                        </p>
+                <Card class="rounded-2xl shadow-sm">
+                    <CardContent class="p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-2">
+                                <p class="text-sm font-medium text-muted-foreground">Average Power</p>
+                                <div class="text-2xl font-semibold tracking-tight">
+                                    <Skeleton v-if="isLoading" class="h-8 w-24" />
+                                    <span v-else>{{ analyticsData.summary.avg_power.toFixed(2) }} W</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground">Mean power draw over time.</p>
+                            </div>
+                            <div class="rounded-xl bg-primary/10 p-2 text-primary">
+                                <GaugeIcon class="h-4 w-4" />
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 
-                <!-- Avg Voltage -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Average voltage</CardTitle>
-                        <ActivityIcon class="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <p class="text-2xl font-bold">
-                            <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>{{ analyticsData.summary.avg_voltage.toFixed(2) }} V</span>
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Indicates supply stability.
-                        </p>
+                <Card class="rounded-2xl shadow-sm">
+                    <CardContent class="p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-2">
+                                <p class="text-sm font-medium text-muted-foreground">Average Voltage</p>
+                                <div class="text-2xl font-semibold tracking-tight">
+                                    <Skeleton v-if="isLoading" class="h-8 w-20" />
+                                    <span v-else>{{ analyticsData.summary.avg_voltage.toFixed(2) }} V</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground">Indicates supply stability.</p>
+                            </div>
+                            <div class="rounded-xl bg-primary/10 p-2 text-primary">
+                                <ActivityIcon class="h-4 w-4" />
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 
-                <!-- Avg Current -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Average current</CardTitle>
-                        <ActivityIcon class="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <p class="text-2xl font-bold">
-                            <Skeleton v-if="isLoading" class="h-7 w-20" />
-                            <span v-else>{{ analyticsData.summary.avg_current.toFixed(2) }} A</span>
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Load drawn over time.
-                        </p>
+                <Card class="rounded-2xl shadow-sm">
+                    <CardContent class="p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-2">
+                                <p class="text-sm font-medium text-muted-foreground">Average Current</p>
+                                <div class="text-2xl font-semibold tracking-tight">
+                                    <Skeleton v-if="isLoading" class="h-8 w-20" />
+                                    <span v-else>{{ analyticsData.summary.avg_current.toFixed(2) }} A</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground">Load drawn during the range.</p>
+                            </div>
+                            <div class="rounded-xl bg-primary/10 p-2 text-primary">
+                                <ActivityIcon class="h-4 w-4" />
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 
-                <!-- Peak power -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Peak power</CardTitle>
-                        <BoltIcon class="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <p class="text-2xl font-bold">
-                            <Skeleton v-if="isLoading" class="h-7 w-24" />
-                            <span v-else>{{ analyticsData.summary.peak_power.toFixed(2) }} W</span>
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Highest recorded in this range.
-                        </p>
+                <Card class="rounded-2xl shadow-sm">
+                    <CardContent class="p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-2">
+                                <p class="text-sm font-medium text-muted-foreground">Peak Power</p>
+                                <div class="text-2xl font-semibold tracking-tight">
+                                    <Skeleton v-if="isLoading" class="h-8 w-24" />
+                                    <span v-else>{{ analyticsData.summary.peak_power.toFixed(2) }} W</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground">Highest recorded value.</p>
+                            </div>
+                            <div class="rounded-xl bg-primary/10 p-2 text-primary">
+                                <BoltIcon class="h-4 w-4" />
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
-            </div>
+            </section>
 
-            <!-- Charts row -->
-            <div class="grid gap-4 lg:grid-cols-2">
-                <!-- Energy usage chart -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Energy usage over time</CardTitle>
+            <!-- Charts -->
+            <section class="grid gap-6 xl:grid-cols-2">
+                <Card class="rounded-2xl shadow-sm">
+                    <CardHeader class="border-b pb-4">
+                        <CardTitle class="text-base">Energy Usage Over Time</CardTitle>
                         <CardDescription>
-                            kWh vs time for the selected device and period.
+                            Energy consumption trend for {{ selectedApplianceLabel.toLowerCase() }} during {{
+                                rangeLabel.toLowerCase() }}.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <!-- Replace with real chart component (Chart.js, ECharts, etc.) -->
-                        <div class="h-64 rounded-md border border-dashed border-muted text-xs text-muted-foreground">
-                            <VChart class="h-72 w-full" :option="energyChartOptions" autoresize />
+                    <CardContent class="p-4 sm:p-6">
+                        <div class="rounded-xl border bg-muted/20 p-3">
+                            <div class="h-80">
+                                <div v-if="isLoading" class="flex h-full items-center justify-center">
+                                    <div class="w-full space-y-3">
+                                        <Skeleton class="h-4 w-32" />
+                                        <Skeleton class="h-65 w-full rounded-xl" />
+                                    </div>
+                                </div>
+
+                                <div v-else-if="!hasEnergyData"
+                                    class="flex h-full flex-col items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
+                                    <BoltIcon class="mb-2 h-5 w-5" />
+                                    No energy data available for the selected filters.
+                                </div>
+
+                                <VChart v-else class="h-full w-full" :option="energyChartOptions" autoresize />
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <!-- Voltage & current trends chart -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Voltage & current trends</CardTitle>
+                <Card class="rounded-2xl shadow-sm">
+                    <CardHeader class="border-b pb-4">
+                        <CardTitle class="text-base">Voltage & Current Trends</CardTitle>
                         <CardDescription>
-                            Helps analyze supply quality and load profile.
+                            Helps analyze electrical stability and current draw patterns.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <!-- Replace with dual‑axis chart -->
-                        <div class="h-64 rounded-md border border-dashed border-muted text-xs text-muted-foreground">
-                            <VChart class="h-72 w-full" :option="voltageChartOptions" autoresize />
+                    <CardContent class="p-4 sm:p-6">
+                        <div class="rounded-xl border bg-muted/20 p-3">
+                            <div class="h-80">
+                                <div v-if="isLoading" class="flex h-full items-center justify-center">
+                                    <div class="w-full space-y-3">
+                                        <Skeleton class="h-4 w-40" />
+                                        <Skeleton class="h-65 w-full rounded-xl" />
+                                    </div>
+                                </div>
+
+                                <div v-else-if="!hasVoltageData"
+                                    class="flex h-full flex-col items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
+                                    <ActivityIcon class="mb-2 h-5 w-5" />
+                                    No voltage/current data available for the selected filters.
+                                </div>
+
+                                <VChart v-else class="h-full w-full" :option="voltageChartOptions" autoresize />
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            </section>
 
-            <!-- Table + alerts -->
-            <div class="grid gap-4 lg:grid-cols-3">
-                <!-- Historical data table -->
-                <Card class="lg:col-span-2">
-                    <CardHeader class="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Detailed readings</CardTitle>
-                            <CardDescription>
-                                Tabular view of measurements in the selected range.
-                            </CardDescription>
+            <!-- Table and alerts -->
+            <section class="grid gap-6 xl:grid-cols-12">
+                <!-- Detailed readings -->
+                <Card class="rounded-2xl shadow-sm xl:col-span-8">
+                    <CardHeader class="border-b pb-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <CardTitle class="text-base">Detailed Readings</CardTitle>
+                                <CardDescription>
+                                    Raw measurements for the selected filters.
+                                </CardDescription>
+                            </div>
+                            <Button variant="outline" size="sm" class="gap-2 rounded-xl">
+                                <DownloadIcon class="h-4 w-4" />
+                                Export CSV
+                            </Button>
                         </div>
-                        <Button variant="outline" size="sm">
-                            Export CSV
-                        </Button>
                     </CardHeader>
-                    <CardContent>
-                        <div class="w-max mb-3">
-                            <div class="flex justify-between items-center mt-4 gap-3">
-                                <Button variant="outline" size="sm" :disabled="page === 1" @click="page--">
+
+                    <CardContent class="space-y-4 p-4 sm:p-6">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="text-sm text-muted-foreground">
+                                Showing page {{ page }} of {{ totalPages }}
+                            </p>
+
+                            <div class="flex items-center gap-2">
+                                <Button variant="outline" size="sm" :disabled="page === 1" @click="prevPage">
+                                    <ChevronLeftIcon class="h-4 w-4" />
                                     Previous
                                 </Button>
-
-                                <span class="text-sm text-muted-foreground">
-                                    Page {{ page }} of {{ Math.ceil(total / pageSize) }}
-                                </span>
-
-                                <Button variant="outline" size="sm" :disabled="page >= Math.ceil(total / pageSize)"
-                                    @click="page++">
+                                <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="nextPage">
                                     Next
+                                    <ChevronRightIcon class="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Timestamp</TableHead>
-                                        <TableHead>Voltage (V)</TableHead>
-                                        <TableHead>Current (A)</TableHead>
-                                        <TableHead>Power (W)</TableHead>
-                                        <TableHead>Energy (kWh)</TableHead>
-                                    </TableRow>
-                                </TableHeader>
 
-                                <TableBody>
-                                    <TableRow v-if="isLoadingTable">
-                                        <TableCell colspan="5">Loading...</TableCell>
-                                    </TableRow>
+                        <div class="overflow-hidden rounded-xl border">
+                            <div class="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow class="bg-muted/30 hover:bg-muted/30">
+                                            <TableHead>Timestamp</TableHead>
+                                            <TableHead>Voltage (V)</TableHead>
+                                            <TableHead>Current (A)</TableHead>
+                                            <TableHead>Power (W)</TableHead>
+                                            <TableHead>Energy (kWh)</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
 
-                                    <TableRow v-for="r in detailedReadings" :key="r.timestamp">
-                                        <TableCell>{{ formatTime(r.timestamp) }}</TableCell>
-                                        <TableCell>{{ r.voltage }}</TableCell>
-                                        <TableCell>{{ r.current }}</TableCell>
-                                        <TableCell>{{ r.power }}</TableCell>
-                                        <TableCell>{{ r.energy_kwh }}</TableCell>
-                                    </TableRow>
+                                    <TableBody>
+                                        <template v-if="isLoadingTable">
+                                            <TableRow v-for="n in 6" :key="n">
+                                                <TableCell colspan="5">
+                                                    <Skeleton class="h-4 w-full" />
+                                                </TableCell>
+                                            </TableRow>
+                                        </template>
 
-                                    <TableRow v-if="!detailedReadings.length && !isLoadingTable">
-                                        <TableCell colspan="5" class="text-center">
-                                            No readings found
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                        <template v-else-if="detailedReadings.length">
+                                            <TableRow v-for="r in detailedReadings" :key="r.timestamp"
+                                                class="hover:bg-muted/30">
+                                                <TableCell class="whitespace-nowrap">{{ formatTime(r.timestamp) }}
+                                                </TableCell>
+                                                <TableCell>{{ r.voltage }}</TableCell>
+                                                <TableCell>{{ r.current }}</TableCell>
+                                                <TableCell>{{ r.power }}</TableCell>
+                                                <TableCell>{{ r.energy_kwh }}</TableCell>
+                                            </TableRow>
+                                        </template>
 
-                <!-- Alerts summary -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Alerts in this period</CardTitle>
-                            <CardDescription>
-                                Anomalies detected for the selected filters.
-                            </CardDescription>
-                        </div>
-                        <Badge variant="outline">
-                            {{ alerts.length }} total
-                        </Badge>
-                    </CardHeader>
-                    <CardContent>
-                        <div v-if="!alerts.length"
-                            class="flex flex-col items-center justify-center py-6 text-sm text-muted-foreground h-full">
-                            <AlertTriangleIcon class="mb-2 h-5 w-5" />
-                            No alerts in the selected range.
-                        </div>
-                        <div v-else class="space-y-2 text-xs">
-                            <div v-for="alert in alerts" :key="alert.id"
-                                class="flex items-start justify-between rounded-md border px-3 py-2">
-                                <div>
-                                    <p class="font-medium text-sm">{{ alert.message }}</p>
-                                    <p class="text-[11px] text-muted-foreground">
-                                        {{ alert.time }} · {{ alert.device }}
-                                    </p>
-                                </div>
-                                <Badge :variant="alert.severity === 'high' ? 'destructive' : 'outline'"
-                                    class="uppercase text-[10px]">
-                                    {{ alert.severity }}
-                                </Badge>
+                                        <TableRow v-else>
+                                            <TableCell colspan="5"
+                                                class="py-8 text-center text-sm text-muted-foreground">
+                                                No readings found for the selected filters.
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-            </div>
-        </div>
 
-        <br>
-        <br>
+                <!-- Alerts -->
+                <Card class="rounded-2xl shadow-sm xl:col-span-4">
+                    <CardHeader class="border-b pb-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <CardTitle class="text-base">Alerts in This Period</CardTitle>
+                                <CardDescription>
+                                    Anomalies detected for the selected device and range.
+                                </CardDescription>
+                            </div>
+                            <Badge variant="outline" class="rounded-full">
+                                {{ alerts.length }} total
+                            </Badge>
+                        </div>
+                    </CardHeader>
+
+                    <CardContent class="p-4 sm:p-5">
+                        <div v-if="isLoadingAlerts" class="space-y-3">
+                            <div v-for="n in 4" :key="n" class="rounded-xl border p-4">
+                                <Skeleton class="h-4 w-40" />
+                                <Skeleton class="mt-2 h-3 w-24" />
+                            </div>
+                        </div>
+
+                        <div v-else-if="!alerts.length"
+                            class="flex min-h-65 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 text-center">
+                            <AlertTriangleIcon class="mb-2 h-5 w-5 text-muted-foreground" />
+                            <p class="text-sm font-medium">No alerts found</p>
+                            <p class="text-xs text-muted-foreground">
+                                No anomalies were detected for the selected filters.
+                            </p>
+                        </div>
+
+                        <div v-else class="space-y-3">
+                            <div v-for="alert in alerts" :key="alert.id"
+                                class="rounded-xl border bg-muted/20 p-4 transition-colors hover:bg-muted/40">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium leading-5">
+                                            {{ alert.message }}
+                                        </p>
+                                        <p class="mt-2 text-xs text-muted-foreground">
+                                            {{ alert.time }} · {{ alert.device }}
+                                        </p>
+                                    </div>
+                                    <Badge :variant="alert.severity === 'high' ? 'destructive' : 'outline'"
+                                        class="shrink-0 rounded-full uppercase text-[10px]">
+                                        {{ alert.severity }}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </section>
+        </div>
     </div>
 </template>
