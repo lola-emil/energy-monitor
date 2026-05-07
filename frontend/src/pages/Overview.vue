@@ -304,7 +304,7 @@ watch(selectedPeriod, async () => {
 
 <template>
     <div class="min-h-screen bg-muted/20">
-        <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div class="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Hero header -->
             <section class="rounded-2xl border bg-background px-5 py-5 shadow-sm">
                 <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -335,23 +335,25 @@ watch(selectedPeriod, async () => {
                     </div>
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                        <div class="inline-flex items-center rounded-xl border bg-muted/30 p-1">
-                            <Button variant="ghost" size="sm" class="rounded-lg" :class="selectedPeriod === 'day'
-                                ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
-                                : ''" @click="selectedPeriod = 'day'">
-                                Today
-                            </Button>
-                            <Button variant="ghost" size="sm" class="rounded-lg" :class="selectedPeriod === 'month'
-                                ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
-                                : ''" @click="selectedPeriod = 'month'">
-                                This Month
-                            </Button>
-                        </div>
+                        <div class="flex gap-3">
+                            <div class="inline-flex items-center rounded-xl border bg-muted/30 p-1">
+                                <Button variant="ghost" size="sm" class="rounded-lg" :class="selectedPeriod === 'day'
+                                    ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                                    : ''" @click="selectedPeriod = 'day'">
+                                    Today
+                                </Button>
+                                <Button variant="ghost" size="sm" class="rounded-lg" :class="selectedPeriod === 'month'
+                                    ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                                    : ''" @click="selectedPeriod = 'month'">
+                                    This Month
+                                </Button>
+                            </div>
 
-                        <div
-                            class="flex items-center gap-2 rounded-xl border bg-background px-3 py-2 text-xs text-muted-foreground">
-                            <span class="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                            <span>Last updated: {{ lastUpdatedText }}</span>
+                            <div
+                                class="flex items-center gap-2 rounded-xl border bg-background px-3 py-2 text-xs text-muted-foreground">
+                                <span class="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                                <span>Last updated: {{ lastUpdatedText }}</span>
+                            </div>
                         </div>
 
                         <Button variant="outline" size="sm" class="gap-2 rounded-xl" :disabled="isRefreshing"

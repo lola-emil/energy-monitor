@@ -115,7 +115,7 @@ onMounted(fetchAppliances)
 
 <template>
     <div class="min-h-screen bg-muted/20">
-        <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div class="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Header -->
             <section
                 class="flex flex-col gap-4 rounded-2xl border bg-background px-5 py-5 shadow-sm md:flex-row md:items-center md:justify-between">
