@@ -27,7 +27,7 @@ import EditDeviceModal from '@/components/EditDeviceModal.vue'
 import DeleteDeviceAlert from '@/components/DeleteDeviceAlert.vue'
 import { formatTime } from '@/lib/time'
 
-const appliances = ref<Appliance[]>([])
+const appliances = ref<Appliance[] | null>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const search = ref('')
@@ -36,25 +36,25 @@ const filteredAppliances = computed(() => {
     const term = search.value.trim().toLowerCase()
     if (!term) return appliances.value
 
-    return appliances.value.filter(appliance =>
+    return appliances.value?.filter(appliance =>
         appliance.name.toLowerCase().includes(term) ||
         String(appliance.id).includes(term) ||
         (appliance.location ?? '').toLowerCase().includes(term)
     )
 })
 
-const totalCount = computed(() => appliances.value.length)
+const totalCount = computed(() => appliances.value?.length)
 
 const onlineCount = computed(() =>
-    appliances.value.filter(appliance => appliance.status === 'online').length
+    appliances.value?.filter(appliance => appliance.status === 'online').length
 )
 
 const offlineCount = computed(() =>
-    appliances.value.filter(appliance => appliance.status === 'offline').length
+    appliances.value?.filter(appliance => appliance.status === 'offline').length
 )
 
-const hasAppliances = computed(() => appliances.value.length > 0)
-const hasFilteredAppliances = computed(() => filteredAppliances.value.length > 0)
+const hasAppliances = computed(() => appliances.value ? appliances.value.length > 0 : false)
+const hasFilteredAppliances = computed(() => filteredAppliances.value ? filteredAppliances.value.length > 0 : false)
 const isSearching = computed(() => search.value.trim().length > 0)
 
 const fetchAppliances = async () => {

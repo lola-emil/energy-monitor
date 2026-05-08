@@ -73,7 +73,7 @@ const summary = ref<ReadingSummary>({
 })
 
 const chartData = ref<ChartPoint[]>([])
-const activeDevices = ref<ApplianceWithReading[]>([])
+const activeDevices = ref<ApplianceWithReading[] | null>([])
 const recentAlerts = ref<Alert[]>([])
 const allAlerts = ref<Alert[]>([])
 
@@ -109,8 +109,8 @@ const chartSeriesName = computed(() =>
 )
 
 const hasChartData = computed(() => chartData.value.length > 0)
-const hasActiveDevices = computed(() => activeDevices.value.length > 0)
-const hasRecentAlerts = computed(() => recentAlerts.value.length > 0)
+const hasActiveDevices = computed(() => activeDevices.value ? activeDevices.value.length > 0 : false)
+const hasRecentAlerts = computed(() => recentAlerts.value ? recentAlerts.value.length > 0 : false)
 const activeChartData = computed(() => chartData.value)
 
 const formatNumber = (value: number, digits = 2) => value.toFixed(digits)
@@ -518,7 +518,7 @@ watch(selectedPeriod, async () => {
                                 </CardDescription>
                             </div>
                             <Badge variant="outline" class="rounded-full">
-                                {{ activeDevices.length }} listed
+                                {{ activeDevices ? activeDevices.length : 0 }} listed
                             </Badge>
                         </div>
                     </CardHeader>
