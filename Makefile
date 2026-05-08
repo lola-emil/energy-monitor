@@ -1,7 +1,6 @@
+MIGRATIONS_DIR=./db/migrations
 
-MIGRATIONS_DIR=db/migrations
-
-GOOSE=goose -dir $(MIGRATIONS_DIR)
+GOOSE=goose -dir $(MIGRATIONS_DIR) postgres "$(GOOSE_DBSTRING)"
 
 # Build the application
 all: build test
@@ -65,19 +64,15 @@ watch:
         fi
 
 
-## Apply all pending migrations
 migrate-up:
 	$(GOOSE) up
 
-## Roll back the last migration
 migrate-down:
 	$(GOOSE) down
 
-## Show migration status
 migrate-status:
 	$(GOOSE) status
 
-## Roll back and re-apply the last migration
 migrate-redo:
 	$(GOOSE) redo
 
