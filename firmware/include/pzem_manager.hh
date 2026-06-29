@@ -8,6 +8,7 @@ struct PZEMData {
     float current;
     float power;
     float energy;
+    float frequency;
 };
 
 void initPZEM();

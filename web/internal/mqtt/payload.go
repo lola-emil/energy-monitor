@@ -3,13 +3,13 @@ package mqtt
 import "time"
 
 type IncomingReading struct {
-	DeviceCode string `json:"device_code"`
+	DeviceCode string `json:"id"`
 
-	Voltage     float64 `json:"voltage"`
-	Current     float64 `json:"current"`
-	Power       float64 `json:"power"`
-	EnergyKWh   float64 `json:"energy_kwh"`
-	FrequencyHz float64 `json:"frequency_hz"`
+	Voltage     float64 `json:"v"`
+	Current     float64 `json:"A"`
+	Power       float64 `json:"W"`
+	EnergyKWh   float64 `json:"e_kWh"`
+	FrequencyHz float64 `json:"hz"`
 
 	Timestamp time.Time `json:"timestamp"`
 }

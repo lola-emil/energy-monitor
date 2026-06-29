@@ -5,7 +5,7 @@
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-static const char *mqtt_server;
+static const char* mqtt_server;
 
 void initMQTT(const char* server) {
     mqtt_server = server;
@@ -22,7 +22,8 @@ bool reconnectMQTT() {
     if (client.connect(clientId.c_str())) {
         Serial.println("MQTT connected");
         return true;
-    } else {
+    }
+    else {
         Serial.print("MQTT failed, rc=");
         Serial.println(client.state());
         return false;
@@ -33,11 +34,12 @@ void sendData(String deviceID, PZEMData& data) {
     String topic = "energy/readings/" + deviceID;
 
     String payload = "{";
-    payload += "\"device_code\":\"" + deviceID + "\",";
-    payload += "\"voltage\":" + String(data.voltage, 2) + ",";
-    payload += "\"current\":" + String(data.current, 2) + ",";
-    payload += "\"power\":" + String(data.power, 2) + ",";
-    payload += "\"energy\":" + String(data.energy, 2);
+    payload += "\"id\":\"" + deviceID + "\",";
+    payload += "\"v\":" + String(data.voltage, 2) + ',';
+    payload += "\"A\":" + String(data.current, 2) + ',';
+    payload += "\"W\":" + String(data.power, 2) + ',';
+    payload += "\"e_kWh\":" + String(data.energy, 2) + ',';
+    payload += "\"hz\":" + String(data.frequency, 2);
     payload += "}";
 
     Serial.println(payload);

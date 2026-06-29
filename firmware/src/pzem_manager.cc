@@ -13,6 +13,7 @@ bool readPZEM(PZEMData& data) {
     data.current = pzem.current();
     data.power = pzem.power();
     data.energy = pzem.energy();
+    data.frequency = pzem.frequency();
 
     return !isnan(data.voltage);
 }

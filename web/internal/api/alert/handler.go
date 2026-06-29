@@ -28,6 +28,7 @@ func (h *AlertHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	alerts, err := h.service.List(r.Context(), userID, filter)
+
 	if err != nil {
 		http.Error(w, "failed", 500)
 		return
