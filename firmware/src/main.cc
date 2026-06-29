@@ -36,10 +36,11 @@ void handleMQTT(void*) {
         lastReconnect = millis();
         reconnectMQTT();
       }
+
+      continue;
     }
-    else {
-      mqttLoop();
-    }
+
+    mqttLoop();
 
     if (millis() - lastPublish >= 1000) {
       lastPublish = millis();
@@ -50,8 +51,6 @@ void handleMQTT(void*) {
 
       sendData(DEVICE_ID, dataCopy);
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
