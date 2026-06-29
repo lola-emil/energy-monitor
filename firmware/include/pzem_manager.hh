@@ -3,7 +3,14 @@
 
 #include <PZEM004Tv30.h>
 
+struct PZEMData {
+    float voltage;
+    float current;
+    float power;
+    float energy;
+};
+
 void initPZEM();
-bool readPZEM(float &v, float &i, float &p, float &e);
+bool readPZEM(PZEMData& data);
 
 #endif

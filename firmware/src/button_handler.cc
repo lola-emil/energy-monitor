@@ -1,6 +1,7 @@
-#include "button_handler.hh"
 #include <Arduino.h>
 #include <WiFiManager.h>
+
+#include "button_handler.hh"
 #include "pins.hh"
 
 static unsigned long buttonPressStart = 0;

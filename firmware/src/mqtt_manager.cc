@@ -1,4 +1,5 @@
 #include "mqtt_manager.hh"
+#include "pzem_manager.hh"
 #include <WiFi.h>
 
 WiFiClient espClient;
@@ -28,15 +29,15 @@ bool reconnectMQTT() {
     }
 }
 
-void sendData(String deviceID, float v, float i, float p, float e) {
+void sendData(String deviceID, PZEMData& data) {
     String topic = "energy/readings/" + deviceID;
 
     String payload = "{";
     payload += "\"device_code\":\"" + deviceID + "\",";
-    payload += "\"voltage\":" + String(v, 2) + ",";
-    payload += "\"current\":" + String(i, 2) + ",";
-    payload += "\"power\":" + String(p, 2) + ",";
-    payload += "\"energy\":" + String(e, 3);
+    payload += "\"voltage\":" + String(data.voltage, 2) + ",";
+    payload += "\"current\":" + String(data.current, 2) + ",";
+    payload += "\"power\":" + String(data.power, 2) + ",";
+    payload += "\"energy\":" + String(data.energy, 2);
     payload += "}";
 
     Serial.println(payload);

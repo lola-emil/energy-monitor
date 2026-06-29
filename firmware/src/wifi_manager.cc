@@ -11,7 +11,7 @@ void setupWiFi() {
     WiFiManager wm;
     wm.setAPCallback(configModeCallback);
 
-    wm.autoConnect("ESP32-Setup");
+    wm.autoConnect("Energy Monitor Setup");
 
     Serial.println("WiFi connected");
     digitalWrite(LED_MQTT_PIN, LED_OFF);
