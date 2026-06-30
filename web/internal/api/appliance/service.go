@@ -4,7 +4,6 @@ import (
 	"context"
 	"energy-monitor-server/internal/model/appliance"
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -32,9 +31,9 @@ func (s *ApplianceService) Create(
 		return errors.New("device code is required")
 	}
 
-	if !strings.HasPrefix(a.DeviceCode, "EMS-") {
-		return errors.New("invalid device code")
-	}
+	// if !strings.HasPrefix(a.DeviceCode, "EMS-") {
+	// 	return errors.New("invalid device code")
+	// }
 
 	a.Status = appliance.ApplianceStatusOffline
 

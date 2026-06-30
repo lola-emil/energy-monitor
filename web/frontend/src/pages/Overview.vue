@@ -469,7 +469,7 @@ watch(selectedPeriod, async () => {
             <!-- Main content -->
             <section class="grid gap-6 xl:grid-cols-12">
                 <!-- Chart -->
-                <Card class="rounded-2xl shadow-sm xl:col-span-8">
+                <Card class="rounded-2xl shadow-sm xl:col-span-12">
                     <CardHeader class="border-b pb-4">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -507,81 +507,7 @@ watch(selectedPeriod, async () => {
                     </CardContent>
                 </Card>
 
-                <!-- Devices -->
-                <Card class="rounded-2xl shadow-sm xl:col-span-4">
-                    <CardHeader class="border-b pb-4">
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <CardTitle class="text-base">Device Status</CardTitle>
-                                <CardDescription>
-                                    Live overview of connected devices and current power draw.
-                                </CardDescription>
-                            </div>
-                            <Badge variant="outline" class="rounded-full">
-                                {{ activeDevices ? activeDevices.length : 0 }} listed
-                            </Badge>
-                        </div>
-                    </CardHeader>
 
-                    <CardContent class="p-4 sm:p-5">
-                        <div class="space-y-3">
-                            <template v-if="isLoadingDevices">
-                                <div v-for="n in 4" :key="n"
-                                    class="flex items-center justify-between rounded-xl border px-3 py-3">
-                                    <div class="space-y-2">
-                                        <Skeleton class="h-4 w-28" />
-                                        <Skeleton class="h-3 w-16" />
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <Skeleton class="h-5 w-16" />
-                                        <Skeleton class="h-4 w-12" />
-                                    </div>
-                                </div>
-                            </template>
-
-                            <template v-else-if="!hasActiveDevices">
-                                <div
-                                    class="flex min-h-65 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 text-center">
-                                    <ActivityIcon class="mb-2 h-5 w-5 text-muted-foreground" />
-                                    <p class="text-sm font-medium">No active devices</p>
-                                    <p class="text-xs text-muted-foreground">
-                                        Online devices and live power readings will appear here.
-                                    </p>
-                                </div>
-                            </template>
-
-                            <template v-else>
-                                <div v-for="device in activeDevices" :key="device.id"
-                                    class="flex items-center justify-between rounded-xl border bg-muted/20 px-4 py-3 transition-colors hover:bg-muted/40">
-                                    <div class="min-w-0 space-y-1">
-                                        <p class="truncate text-sm font-medium">
-                                            {{ device.name }}
-                                        </p>
-                                        <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span class="inline-block h-2 w-2 rounded-full"
-                                                :class="device.status === 'online' ? 'bg-emerald-500' : 'bg-slate-400'" />
-                                            <span>
-                                                {{ device.status === 'online' ? 'Currently online' : 'Currently offline'
-                                                }}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div class="ml-4 flex items-center gap-2">
-                                        <Badge :variant="device.status === 'online' ? 'default' : 'outline'"
-                                            class="rounded-full px-2.5">
-                                            {{ device.status === 'online' ? 'Online' : 'Offline' }}
-                                        </Badge>
-                                        <div v-if="device.status === 'online'"
-                                            class="rounded-lg bg-background px-2.5 py-1 text-sm font-semibold">
-                                            {{ device.power }} W
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </CardContent>
-                </Card>
             </section>
 
             <!-- Alerts -->
@@ -597,7 +523,8 @@ watch(selectedPeriod, async () => {
                             </div>
 
                             <Button variant="outline" size="sm" class="rounded-xl" @click="openModal">
-                                View all alerts
+                                View all  
+                                <span v-if="recentAlerts.length > 0">({{ recentAlerts.length }})</span>
                             </Button>
                         </div>
                     </CardHeader>
@@ -624,21 +551,21 @@ watch(selectedPeriod, async () => {
                         </div>
 
                         <div v-else class="grid gap-3 md:grid-cols-2">
-                            <div v-for="alert in recentAlerts" :key="alert.id"
+                            <div v-for="alert in 4" :key="recentAlerts[alert]?.id"
                                 class="rounded-xl border bg-muted/20 p-4 transition-colors hover:bg-muted/40">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="text-sm font-medium leading-5">
-                                            {{ alert.message }}
+                                            {{ recentAlerts[alert]?.message }}
                                         </p>
                                         <p class="mt-2 text-xs text-muted-foreground">
-                                            {{ formatTime(alert.triggered_at) }}
+                                            {{ formatTime(recentAlerts[alert]?.triggered_at) }}
                                         </p>
                                     </div>
 
-                                    <Badge :variant="alert.severity === 'high' ? 'destructive' : 'outline'"
+                                    <Badge :variant="recentAlerts[alert]?.severity === 'high' ? 'destructive' : 'outline'"
                                         class="shrink-0 rounded-full uppercase text-[10px]">
-                                        {{ alert.severity }}
+                                        {{ recentAlerts[alert]?.severity }}
                                     </Badge>
                                 </div>
                             </div>
