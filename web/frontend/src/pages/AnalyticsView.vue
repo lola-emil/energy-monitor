@@ -744,7 +744,7 @@ watch(page, fetchDetailedReadings)
                         </div>
                     </CardHeader>
 
-                    <CardContent class="p-4 sm:p-5">
+                    <CardContent class="p-4 sm:p-5 flex-1">
                         <div v-if="isLoadingAlerts" class="space-y-3">
                             <div v-for="n in 4" :key="n" class="rounded-xl border p-4">
                                 <Skeleton class="h-4 w-40" />
@@ -753,7 +753,7 @@ watch(page, fetchDetailedReadings)
                         </div>
 
                         <div v-else-if="!alerts.length"
-                            class="flex min-h-65 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 text-center">
+                            class="flex h-full flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 text-center">
                             <AlertTriangleIcon class="mb-2 h-5 w-5 text-muted-foreground" />
                             <p class="text-sm font-medium">No alerts found</p>
                             <p class="text-xs text-muted-foreground">

@@ -240,25 +240,14 @@ onMounted(fetchAppliances)
                         </div>
                     </CardHeader>
 
-                    <CardContent class="space-y-3 pt-0 text-sm">
-                        <div class="rounded-xl border bg-muted/20 px-3 py-3">
-                            <div class="flex items-center justify-between">
-                                <span class="flex items-center gap-2 text-muted-foreground">
-                                    <PowerIcon class="h-4 w-4" />
-                                    Current power
-                                </span>
-                                <span class="font-medium">
-                                    <span v-if="appliance.status === 'online'">—</span>
-                                    <span v-else class="text-muted-foreground">Offline</span>
-                                </span>
-                            </div>
-                        </div>
+                    <CardContent class="pt-0 text-sm">
 
-                        <div class="space-y-2 text-xs text-muted-foreground">
+                        <div class="text-sm text-muted-foreground">
                             <div class="flex items-center justify-between">
                                 <span>Device ID</span>
                                 <span class="font-medium text-foreground">{{ appliance.id }}</span>
                             </div>
+                            <br>
                             <div class="flex items-center justify-between">
                                 <span>Last update</span>
                                 <span class="font-medium text-foreground">

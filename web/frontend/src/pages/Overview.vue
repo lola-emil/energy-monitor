@@ -575,7 +575,7 @@ watch(selectedPeriod, async () => {
             </section>
 
             <Dialog v-model:open="isModalOpen">
-                <DialogContent class="max-w-3xl rounded-2xl">
+                <DialogContent class="max-w-3xl rounded-2xl max-h-96 overflow-auto">
                     <DialogHeader>
                         <DialogTitle>All Alerts</DialogTitle>
                         <DialogDescription>
