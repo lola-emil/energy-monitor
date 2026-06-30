@@ -144,17 +144,19 @@ func (r *alertRepo) Create(ctx context.Context, a *Alert) error {
 		INSERT INTO alerts (
 			appliance_id,
 			type,
+			name,
 			severity,
 			message,
 			triggered_at
 		)
-		VALUES ($1, $2, $3, $4, NOW())
+		VALUES ($1, $2, $3, $4, $5, NOW())
 		RETURNING id, triggered_at
 	`
 
 	return r.db.QueryRowxContext(ctx, query,
 		a.ApplianceID,
 		a.Type,
+		a.Name,
 		a.Severity,
 		a.Message,
 	).Scan(&a.ID, &a.TriggeredAt)
@@ -252,9 +254,10 @@ func (r *alertRepo) GetAnalyticsAlerts(
 			al.message,
 			al.severity,
 			al.triggered_at,
-			a.name
+			a.id
 		FROM alerts al
 		JOIN appliances a ON a.id = al.appliance_id
+		JOIN energy_readings er ON a.id = er.appliance_id
 		WHERE
 			a.user_id = $1
 			AND %s

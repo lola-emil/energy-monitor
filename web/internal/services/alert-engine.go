@@ -3,22 +3,27 @@ package services
 import (
 	"context"
 	"energy-monitor-server/internal/model/alert"
+	"energy-monitor-server/internal/model/appliance"
 	"energy-monitor-server/internal/model/energyreading"
 	"energy-monitor-server/internal/model/setting"
+	"fmt"
 )
 
 type AlertEngine struct {
-	settingsRepo setting.SettingsRepository
-	alertRepo    alert.AlertRepository
+	settingsRepo  setting.SettingsRepository
+	alertRepo     alert.AlertRepository
+	applianceRepo appliance.ApplianceRepository
 }
 
 func NewAlertEngine(
 	settingsRepo setting.SettingsRepository,
 	alertRepo alert.AlertRepository,
+	applianceRepo appliance.ApplianceRepository,
 ) *AlertEngine {
 	return &AlertEngine{
-		settingsRepo: settingsRepo,
-		alertRepo:    alertRepo,
+		settingsRepo:  settingsRepo,
+		alertRepo:     alertRepo,
+		applianceRepo: applianceRepo,
 	}
 }
 
@@ -81,17 +86,27 @@ func (s *AlertEngine) createIfNotExists(
 	severity alert.AlertSeverity,
 	message string,
 ) {
+
+	device, err := s.applianceRepo.GetByID(ctx, applianceID)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	exists, err := s.alertRepo.HasActiveAlert(
 		ctx,
 		applianceID,
 		alertType,
 	)
 	if err != nil || exists {
+		fmt.Println(err)
 		return
 	}
 
 	_ = s.alertRepo.Create(ctx, &alert.Alert{
 		ApplianceID: &applianceID,
+		Name:        device.Name,
 		Type:        alertType,
 		Severity:    severity,
 		Message:     message,

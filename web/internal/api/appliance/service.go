@@ -44,8 +44,8 @@ func (s *ApplianceService) List(ctx context.Context, userID int64) ([]appliance.
 	return s.repo.List(ctx, userID)
 }
 
-func (s *ApplianceService) Get(ctx context.Context, userID, id int64) (*appliance.Appliance, error) {
-	return s.repo.GetByID(ctx, userID, id)
+func (s *ApplianceService) Get(ctx context.Context, id int64) (*appliance.Appliance, error) {
+	return s.repo.GetByID(ctx, id)
 }
 
 func (s *ApplianceService) Update(ctx context.Context, a *appliance.Appliance) error {

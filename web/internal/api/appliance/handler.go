@@ -55,7 +55,7 @@ func (h *ApplianceHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *ApplianceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 
-	a, err := h.service.Get(r.Context(), httputil.GetUserID(r), id)
+	a, err := h.service.Get(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
 		return

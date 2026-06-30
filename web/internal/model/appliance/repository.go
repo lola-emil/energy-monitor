@@ -19,7 +19,7 @@ type applianceRepo struct {
 
 type ApplianceRepository interface {
 	Create(ctx context.Context, a *Appliance) error
-	GetByID(ctx context.Context, userID, id int64) (*Appliance, error)
+	GetByID(ctx context.Context, id int64) (*Appliance, error)
 	List(ctx context.Context, userID int64) ([]Appliance, error)
 	Update(ctx context.Context, a *Appliance) error
 	Delete(ctx context.Context, userID, id int64) error
@@ -78,13 +78,13 @@ func (r *applianceRepo) Create(ctx context.Context, a *Appliance) error {
 	).Scan(&a.ID, &a.CreatedAt, &a.UpdatedAt)
 }
 
-func (r *applianceRepo) GetByID(ctx context.Context, userID, id int64) (*Appliance, error) {
+func (r *applianceRepo) GetByID(ctx context.Context, id int64) (*Appliance, error) {
 	var a Appliance
 
 	err := r.db.GetContext(ctx, &a, `
 		SELECT * FROM appliances
-		WHERE id = $1 AND user_id = $2
-	`, id, userID)
+		WHERE id = $1
+	`, id)
 
 	if err != nil {
 		return nil, err

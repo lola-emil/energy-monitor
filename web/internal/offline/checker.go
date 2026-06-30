@@ -35,6 +35,7 @@ func check(
 		ctx,
 		2, // offline if no reading for 2 mins
 	)
+
 	if err != nil {
 		log.Println("Offline check failed:", err)
 		return
@@ -46,6 +47,7 @@ func check(
 		_ = alertRepo.Create(ctx, &alert.Alert{
 			ApplianceID: &a.ID,
 			Type:        alert.AlertTypeOffline,
+			Name:        a.Name,
 			Severity:    alert.AlertSeverityHigh,
 			Message:     "Device is offline",
 		})

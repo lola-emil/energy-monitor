@@ -50,6 +50,7 @@ func (s *Server) RegisterRoutes(
 	alertEngine := services.NewAlertEngine(
 		settingsRepo,
 		alertRepo,
+		applianceRepo,
 	)
 
 	// Mga service

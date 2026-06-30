@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"energy-monitor-server/internal/model/alert"
 	httputil "energy-monitor-server/internal/utils/http"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -82,7 +83,9 @@ func (h *AlertHandler) GetAnalyticsAlerts(w http.ResponseWriter, r *http.Request
 		applianceID,
 		rangeType,
 	)
+
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
