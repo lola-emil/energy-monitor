@@ -5,13 +5,11 @@ import (
 	"log"
 	"time"
 
-	"energy-monitor-server/internal/model/alert"
 	"energy-monitor-server/internal/model/appliance"
 )
 
 func StartOfflineChecker(
 	applianceRepo appliance.ApplianceRepository,
-	alertRepo alert.AlertRepository,
 ) {
 	ticker := time.NewTicker(1 * time.Minute)
 
@@ -19,7 +17,6 @@ func StartOfflineChecker(
 		for range ticker.C {
 			check(
 				applianceRepo,
-				alertRepo,
 			)
 		}
 	}()
@@ -27,7 +24,6 @@ func StartOfflineChecker(
 
 func check(
 	applianceRepo appliance.ApplianceRepository,
-	alertRepo alert.AlertRepository,
 ) {
 	ctx := context.Background()
 
@@ -43,14 +39,6 @@ func check(
 
 	for _, a := range appliances {
 		_ = applianceRepo.MarkOffline(ctx, a.ID)
-
-		_ = alertRepo.Create(ctx, &alert.Alert{
-			ApplianceID: &a.ID,
-			Type:        alert.AlertTypeOffline,
-			Name:        a.Name,
-			Severity:    alert.AlertSeverityHigh,
-			Message:     "Device is offline",
-		})
 
 		log.Printf(
 			"Device offline detected: %s",

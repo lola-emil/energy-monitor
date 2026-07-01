@@ -106,7 +106,7 @@ func (s *AlertEngine) createIfNotExists(
 
 	_ = s.alertRepo.Create(ctx, &alert.Alert{
 		ApplianceID: &applianceID,
-		Name:        device.Name,
+		Name:        &device.Name,
 		Type:        alertType,
 		Severity:    severity,
 		Message:     message,

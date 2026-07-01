@@ -70,7 +70,7 @@ func (r *alertRepo) List(ctx context.Context, userID int64, f AlertFilter) ([]Al
 		LEFT JOIN appliances ap ON a.appliance_id = ap.id
 		WHERE ap.user_id = $1
 	`
-	args := []interface{}{userID}
+	args := []any{userID}
 	i := 2
 
 	switch f.Status {

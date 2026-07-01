@@ -45,6 +45,7 @@ func (s *ReadingService) GetSummary(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) (*energyreading.ReadingSummary, error) {
 
 	summary, err := s.repo.GetSummary(
@@ -52,6 +53,7 @@ func (s *ReadingService) GetSummary(
 		userID,
 		applianceID,
 		rangeType,
+		month, year,
 	)
 	if err != nil {
 		return nil, err
@@ -89,6 +91,7 @@ func (s *ReadingService) GetAnalytics(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) (*energyreading.AnalyticsResponse, error) {
 
 	// Summary
@@ -97,6 +100,8 @@ func (s *ReadingService) GetAnalytics(
 		userID,
 		applianceID,
 		rangeType,
+		month,
+		year,
 	)
 	if err != nil {
 		return nil, err
@@ -108,24 +113,25 @@ func (s *ReadingService) GetAnalytics(
 		userID,
 		applianceID,
 		rangeType,
+		month,
+		year,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// OPTIONAL: compute total energy for summary
 	var totalEnergy float64
 	for _, e := range energy {
 		totalEnergy += e.Value
 	}
 	summary.TotalEnergyKWh = totalEnergy
 
-	// 3. Voltage & Current
 	vc, err := s.repo.GetVoltageCurrentChart(
 		ctx,
 		userID,
 		applianceID,
 		rangeType,
+		month, year,
 	)
 	if err != nil {
 		return nil, err
@@ -145,6 +151,7 @@ func (s *ReadingService) GetDetailedReadings(
 	rangeType string,
 	page int,
 	pageSize int,
+	month, year *int,
 ) ([]energyreading.EnergyReading, int, error) {
 
 	offset := (page - 1) * pageSize
@@ -154,6 +161,7 @@ func (s *ReadingService) GetDetailedReadings(
 		userID,
 		applianceID,
 		rangeType,
+		month, year,
 		pageSize,
 		offset,
 	)

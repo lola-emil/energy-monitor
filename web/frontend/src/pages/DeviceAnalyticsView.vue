@@ -298,11 +298,6 @@ watch(
                         <Button size="sm" variant="outline" class="rounded-xl" @click="refreshPage">
                             Refresh
                         </Button>
-                        <Button size="sm" variant="outline" class="rounded-xl"
-                            @click="router.push({ name: 'analytics', query: { applianceId } })">
-                            <LineChartIcon class="mr-2 h-4 w-4" />
-                            View in Analytics
-                        </Button>
                     </div>
                 </div>
             </section>

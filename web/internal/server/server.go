@@ -60,7 +60,7 @@ func NewServer() *http.Server {
 	go mqtt.StartSubscriber(mqttHandler)
 
 	// Offline Checker
-	offline.StartOfflineChecker(applianceRepo, alertRepo)
+	offline.StartOfflineChecker(applianceRepo)
 
 	// Declare Server config
 	server := &http.Server{

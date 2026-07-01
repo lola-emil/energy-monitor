@@ -22,6 +22,7 @@ type ReadingRepository interface {
 		userID int64,
 		applianceID *int64,
 		rangeType string,
+		month, year *int,
 	) (*ReadingSummary, error)
 
 	UpdateApplianceLastReading(
@@ -40,6 +41,7 @@ type ReadingRepository interface {
 		userID int64,
 		applianceID *int64,
 		rangeType string,
+		month, year *int,
 	) ([]ChartPoint, error)
 
 	GetVoltageCurrentChart(
@@ -47,6 +49,7 @@ type ReadingRepository interface {
 		userID int64,
 		applianceID *int64,
 		rangeType string,
+		month, year *int,
 	) ([]VoltageCurrentPoint, error)
 
 	GetAnalyticsSummary(
@@ -54,6 +57,7 @@ type ReadingRepository interface {
 		userID int64,
 		applianceID *int64,
 		rangeType string,
+		month, year *int,
 	) (*AnalyticsSummary, error)
 
 	GetDetailedReadings(
@@ -61,6 +65,7 @@ type ReadingRepository interface {
 		userID int64,
 		applianceID *int64,
 		rangeType string,
+		month, year *int,
 		limit int,
 		offset int,
 	) ([]EnergyReading, int, error)
@@ -107,7 +112,7 @@ func (r *readingRepo) List(
 		JOIN appliances a ON er.appliance_id = a.id
 		WHERE a.user_id = $1
 	`
-	args := []interface{}{userID}
+	args := []any{userID}
 	i := 2
 
 	if applianceID != nil {
@@ -140,9 +145,30 @@ func (r *readingRepo) GetSummary(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) (*ReadingSummary, error) {
 
-	interval := buildRangeCondition(rangeType)
+	args := []any{userID}
+	nextParam := 2
+
+	applianceFilter := ""
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, rangeArgs...)
 
 	query := fmt.Sprintf(`
 		SELECT
@@ -192,16 +218,11 @@ func (r *readingRepo) GetSummary(
 				%s
 		) t
 		WHERE prev_ts IS NOT NULL;
-	`, interval, buildApplianceFilter(applianceID, 2))
-
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
+	`, condition, applianceFilter)
 
 	var summary ReadingSummary
 
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+	err = r.db.QueryRowContext(ctx, query, args...).Scan(
 		&summary.TotalEnergyKWh,
 		&summary.PeakPower,
 		&summary.ActiveDevices,
@@ -209,6 +230,7 @@ func (r *readingRepo) GetSummary(
 		&summary.BillingRate,
 		&summary.ActiveAlerts,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -410,16 +432,47 @@ func buildRangeQuery(rangeType string) (interval string, labelFormat string) {
 	}
 }
 
-func buildRangeCondition(rangeType string) string {
+func buildRangeCondition(
+	rangeType string,
+	month, year *int,
+	startParam int,
+) (string, []any, error) {
+
 	switch rangeType {
 	case "today":
-		return "er.ts >= date_trunc('day', NOW())"
+		return "er.ts >= date_trunc('day', NOW())", nil, nil
+
 	case "7d":
-		return "er.ts >= NOW() - INTERVAL '7 days'"
+		return "er.ts >= NOW() - INTERVAL '7 days'", nil, nil
+
 	case "month":
-		return "er.ts >= date_trunc('month', NOW())"
+		now := time.Now()
+
+		m := int(now.Month())
+		if month != nil {
+			m = *month
+		}
+
+		y := now.Year()
+		if year != nil {
+			y = *year
+		}
+
+		if m < 1 || m > 12 {
+			return "", nil, fmt.Errorf("invalid month")
+		}
+
+		start := time.Date(y, time.Month(m), 1, 0, 0, 0, 0, time.UTC)
+		end := start.AddDate(0, 1, 0)
+
+		return fmt.Sprintf(
+			"er.ts >= $%d AND er.ts < $%d",
+			startParam,
+			startParam+1,
+		), []any{start, end}, nil
+
 	default:
-		return "er.ts >= date_trunc('day', NOW())"
+		return "", nil, fmt.Errorf("invalid range type")
 	}
 }
 
@@ -428,11 +481,33 @@ func (r *readingRepo) GetAnalyticsEnergyChart(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) ([]ChartPoint, error) {
 
-	condition := buildRangeCondition(rangeType)
 	groupUnit := groupByUnit(rangeType)
 	labelFormat := buildLabelFormat(rangeType)
+
+	args := []any{userID}
+	nextParam := 2
+
+	applianceFilter := ""
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, rangeArgs...)
 
 	query := fmt.Sprintf(`
 		SELECT
@@ -459,12 +534,7 @@ func (r *readingRepo) GetAnalyticsEnergyChart(
 		WHERE t.prev_ts IS NOT NULL
 		GROUP BY group_ts
 		ORDER BY group_ts;
-	`, labelFormat, groupUnit, condition, buildApplianceFilter(applianceID, 2))
-
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
+	`, labelFormat, groupUnit, condition, applianceFilter)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -489,11 +559,33 @@ func (r *readingRepo) GetVoltageCurrentChart(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) ([]VoltageCurrentPoint, error) {
 
-	condition := buildRangeCondition(rangeType)
 	groupUnit := groupByUnit(rangeType)
 	labelFormat := buildLabelFormat(rangeType)
+
+	args := []any{userID}
+	nextParam := 2
+
+	applianceFilter := ""
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, rangeArgs...)
 
 	query := fmt.Sprintf(`
 		SELECT
@@ -514,12 +606,7 @@ func (r *readingRepo) GetVoltageCurrentChart(
 		) t
 		GROUP BY group_ts
 		ORDER BY group_ts;
-	`, labelFormat, groupUnit, condition, buildApplianceFilter(applianceID, 2))
-
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
+	`, labelFormat, groupUnit, condition, applianceFilter)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -544,9 +631,30 @@ func (r *readingRepo) GetAnalyticsSummary(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) (*AnalyticsSummary, error) {
 
-	condition := buildRangeCondition(rangeType)
+	args := []any{userID}
+	nextParam := 2
+
+	applianceFilter := ""
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, rangeArgs...)
 
 	query := fmt.Sprintf(`
 		SELECT
@@ -567,10 +675,12 @@ func (r *readingRepo) GetAnalyticsSummary(
 				er.current,
 
 				LEAST(
-					EXTRACT(EPOCH FROM (er.ts - LAG(er.ts) OVER (
-						PARTITION BY er.appliance_id
-						ORDER BY er.ts
-					))),
+					EXTRACT(EPOCH FROM (
+						er.ts - LAG(er.ts) OVER (
+							PARTITION BY er.appliance_id
+							ORDER BY er.ts
+						)
+					)),
 					5
 				) AS dt
 
@@ -582,16 +692,11 @@ func (r *readingRepo) GetAnalyticsSummary(
 				%s
 		) t
 		WHERE t.dt IS NOT NULL
-	`, condition, buildApplianceFilter(applianceID, 2))
-
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
+	`, condition, applianceFilter)
 
 	var summary AnalyticsSummary
 
-	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+	err = r.db.QueryRowContext(ctx, query, args...).Scan(
 		&summary.AvgPower,
 		&summary.AvgVoltage,
 		&summary.AvgCurrent,
@@ -609,13 +714,36 @@ func (r *readingRepo) GetDetailedReadings(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 	limit int,
 	offset int,
 ) ([]EnergyReading, int, error) {
 
-	condition := buildRangeCondition(rangeType)
+	args := []any{userID}
 
-	// 🔥 total count (for pagination)
+	nextParam := 2
+
+	applianceFilter := ""
+
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	args = append(args, rangeArgs...)
+
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*)
 		FROM energy_readings er
@@ -624,19 +752,13 @@ func (r *readingRepo) GetDetailedReadings(
 			a.user_id = $1
 			AND %s
 			%s
-	`, condition, buildApplianceFilter(applianceID, 2))
-
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
+	`, condition, applianceFilter)
 
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	// 🔥 paginated data
 	dataQuery := fmt.Sprintf(`
 		SELECT
 			er.ts,
@@ -652,7 +774,7 @@ func (r *readingRepo) GetDetailedReadings(
 			%s
 		ORDER BY er.ts DESC
 		LIMIT $%d OFFSET $%d
-	`, condition, buildApplianceFilter(applianceID, 2), len(args)+1, len(args)+2)
+	`, condition, applianceFilter, len(args)+1, len(args)+2)
 
 	args = append(args, limit, offset)
 
@@ -684,6 +806,7 @@ func (r *readingRepo) GetDetailedReadings(
 
 	return result, total, nil
 }
+
 func groupByUnit(rangeType string) string {
 	switch rangeType {
 	case "today":

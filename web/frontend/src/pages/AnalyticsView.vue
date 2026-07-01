@@ -14,6 +14,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import DatePicker from '@/components/DatePicker.vue'
 import {
     BoltIcon,
     GaugeIcon,
@@ -469,13 +470,12 @@ watch(page, fetchDetailedReadings)
                         </div>
                     </div>
 
+                    <div>
+                        <DatePicker></DatePicker>
+                    </div>
+
                     <Separator orientation="vertical" class="hidden h-6 lg:block" />
 
-                    <div
-                        class="flex items-center gap-1 rounded-xl border bg-background px-3 py-2 text-xs text-muted-foreground">
-                        <CalendarRangeIcon class="h-3.5 w-3.5" />
-                        <span>Last updated: {{ lastUpdatedText }}</span>
-                    </div>
                 </div>
             </section>
 

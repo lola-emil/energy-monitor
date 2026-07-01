@@ -46,6 +46,30 @@ func (h *ReadingHandler) GetSummary(
 		rangeType = "today"
 	}
 
+	var month *int
+
+	monthStr := r.URL.Query().Get("month")
+	if monthStr != "" {
+		m, err := strconv.Atoi(monthStr)
+		if err != nil {
+			// handle invalid month
+			return
+		}
+		month = &m
+	}
+
+	var year *int
+
+	yearStr := r.URL.Query().Get("year")
+	if yearStr != "" {
+		y, err := strconv.Atoi(yearStr)
+		if err != nil {
+			// handle invalid year
+			return
+		}
+		year = &y
+	}
+
 	var applianceID *int64
 	if idStr := r.URL.Query().Get("appliance_id"); idStr != "" && idStr != "all" {
 		id, err := strconv.ParseInt(idStr, 10, 64)
@@ -61,6 +85,7 @@ func (h *ReadingHandler) GetSummary(
 		userID,
 		applianceID,
 		rangeType,
+		month, year,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -106,6 +131,30 @@ func (h *ReadingHandler) GetAnalytics(
 		rangeType = "today"
 	}
 
+	var month *int
+
+	monthStr := r.URL.Query().Get("month")
+	if monthStr != "" {
+		m, err := strconv.Atoi(monthStr)
+		if err != nil {
+			// handle invalid month
+			return
+		}
+		month = &m
+	}
+
+	var year *int
+
+	yearStr := r.URL.Query().Get("year")
+	if yearStr != "" {
+		y, err := strconv.Atoi(yearStr)
+		if err != nil {
+			// handle invalid year
+			return
+		}
+		year = &y
+	}
+
 	var applianceID *int64
 	idStr := r.URL.Query().Get("appliance_id")
 
@@ -123,6 +172,8 @@ func (h *ReadingHandler) GetAnalytics(
 		userID,
 		applianceID,
 		rangeType,
+		month,
+		year,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -137,6 +188,30 @@ func (h *ReadingHandler) GetDetailedReadings(w http.ResponseWriter, r *http.Requ
 	rangeType := r.URL.Query().Get("range")
 	if rangeType == "" {
 		rangeType = "today"
+	}
+
+	var month *int
+
+	monthStr := r.URL.Query().Get("month")
+	if monthStr != "" {
+		m, err := strconv.Atoi(monthStr)
+		if err != nil {
+			// handle invalid month
+			return
+		}
+		month = &m
+	}
+
+	var year *int
+
+	yearStr := r.URL.Query().Get("year")
+	if yearStr != "" {
+		y, err := strconv.Atoi(yearStr)
+		if err != nil {
+			// handle invalid year
+			return
+		}
+		year = &y
 	}
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -162,6 +237,7 @@ func (h *ReadingHandler) GetDetailedReadings(w http.ResponseWriter, r *http.Requ
 		rangeType,
 		page,
 		pageSize,
+		month, year,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), 400)

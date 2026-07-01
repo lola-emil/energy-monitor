@@ -49,7 +49,11 @@ export const readingService = {
         range: string;
         appliance_id?: number;
     }): Promise<AnalyticsResponse> {
-        const res = await api.get("/readings/analytics", { params });
+        const res = await api.get("/readings/analytics", {
+            params: {
+                ...params,
+            },
+        });
         return res.data;
     },
 

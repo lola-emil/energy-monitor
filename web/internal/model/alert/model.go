@@ -22,7 +22,7 @@ const (
 type Alert struct {
 	ID          int64         `json:"id" db:"id"`
 	ApplianceID *int64        `json:"appliance_id,omitempty" db:"appliance_id"` // nil for system-wide
-	Name        string        `json:"name" db:"name"`
+	Name        *string       `json:"name,omitempty" db:"name"`
 	Type        AlertType     `json:"type" db:"type"`
 	Severity    AlertSeverity `json:"severity" db:"severity"`
 	Message     string        `json:"message" db:"message"`
