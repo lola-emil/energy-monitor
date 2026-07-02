@@ -102,6 +102,30 @@ func (h *ReadingHandler) GetChart(
 ) {
 	userID := httputil.GetUserID(r)
 
+	var month *int
+
+	monthStr := r.URL.Query().Get("month")
+	if monthStr != "" {
+		m, err := strconv.Atoi(monthStr)
+		if err != nil {
+			// handle invalid month
+			return
+		}
+		month = &m
+	}
+
+	var year *int
+
+	yearStr := r.URL.Query().Get("year")
+	if yearStr != "" {
+		y, err := strconv.Atoi(yearStr)
+		if err != nil {
+			// handle invalid year
+			return
+		}
+		year = &y
+	}
+
 	rangeType := r.URL.Query().Get("range")
 	if rangeType == "" {
 		rangeType = "today"
@@ -111,6 +135,8 @@ func (h *ReadingHandler) GetChart(
 		r.Context(),
 		userID,
 		rangeType,
+		month,
+		year,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), 400)

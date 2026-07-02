@@ -13,11 +13,11 @@ import { alertService, type Alert } from '@/services/alert.service'
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import AlertTable from '@/components/AlertTable.vue'
+import DatePicker from '@/components/DatePicker.vue'
 import VChart from 'vue-echarts'
 
 import { use } from 'echarts/core'
@@ -30,8 +30,6 @@ import { formatTime } from '@/lib/time'
 import {
     BoltIcon,
     CircleDollarSignIcon,
-    ActivityIcon,
-    AlertTriangleIcon,
     RefreshCcwIcon,
     ZapIcon,
     BarChart3Icon,
@@ -54,6 +52,11 @@ const { colors } = useThemeColors()
 
 const selectedPeriod = ref<Period>('month')
 const now = ref(new Date())
+
+const selectedMonth = ref({
+    year: 2026,
+    month: 6,
+})
 
 const isLoadingSummary = ref(true)
 const isLoadingChart = ref(true)
@@ -83,16 +86,6 @@ const loadError = ref<string | null>(null)
 const range = computed(() => (selectedPeriod.value === 'day' ? 'today' : 'month'))
 const isDayView = computed(() => selectedPeriod.value === 'day')
 
-const lastUpdatedText = computed(() =>
-    now.value.toLocaleString(undefined, {
-        hour12: false,
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    })
-)
 
 const chartTitle = computed(() =>
     isDayView.value ? "Today's Energy Usage" : 'Monthly Energy Usage'
@@ -109,7 +102,6 @@ const chartSeriesName = computed(() =>
 )
 
 const hasChartData = computed(() => chartData.value.length > 0)
-const hasActiveDevices = computed(() => activeDevices.value ? activeDevices.value.length > 0 : false)
 const hasRecentAlerts = computed(() => recentAlerts.value ? recentAlerts.value.length > 0 : false)
 const activeChartData = computed(() => chartData.value)
 
@@ -119,7 +111,20 @@ const formatCurrency = (value: number) => `₱${value.toFixed(2)}`
 const fetchSummary = async () => {
     try {
         isLoadingSummary.value = true
-        const data = await readingService.getSummary({ range: range.value })
+
+        let month: number | undefined;
+        let year: number | undefined;
+
+        if (selectedMonth.value.month && selectedMonth.value.year) {
+            month = selectedMonth.value.month + 1;
+            year = selectedMonth.value.year;
+        }
+
+        const data = await readingService.getSummary({
+            range: range.value,
+            month: month ? month.toString() : undefined,
+            year: year ? year.toString() : undefined,
+        })
         summary.value = data
         now.value = new Date()
     } catch (error) {
@@ -133,7 +138,20 @@ const fetchSummary = async () => {
 const fetchChart = async () => {
     try {
         isLoadingChart.value = true
-        const data = await readingService.getChart(range.value)
+
+        let month: number | undefined;
+        let year: number | undefined;
+
+        if (selectedMonth.value.month && selectedMonth.value.year) {
+            month = selectedMonth.value.month + 1;
+            year = selectedMonth.value.year;
+        }
+
+        const data = await readingService.getChart({
+            range: range.value,
+            month: month ? month.toString() : undefined,
+            year: year ? year.toString() : undefined,
+        })
         chartData.value = data
     } catch (error) {
         console.error('Failed to load chart:', error)
@@ -295,6 +313,10 @@ const chartOptions = computed(() => {
     }
 })
 
+watch(selectedMonth, async () => {
+    await Promise.all([fetchSummary(), fetchChart()]);
+})
+
 onMounted(refreshDashboard)
 
 watch(selectedPeriod, async () => {
@@ -336,7 +358,7 @@ watch(selectedPeriod, async () => {
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                         <div class="flex gap-3">
-                            <div class="inline-flex items-center rounded-xl border bg-muted/30 p-1">
+                            <!-- <div class="inline-flex items-center rounded-xl border bg-muted/30 p-1">
                                 <Button variant="ghost" size="sm" class="rounded-lg" :class="selectedPeriod === 'day'
                                     ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
                                     : ''" @click="selectedPeriod = 'day'">
@@ -347,13 +369,9 @@ watch(selectedPeriod, async () => {
                                     : ''" @click="selectedPeriod = 'month'">
                                     This Month
                                 </Button>
-                            </div>
+                            </div> -->
 
-                            <div
-                                class="flex items-center gap-2 rounded-xl border bg-background px-3 py-2 text-xs text-muted-foreground">
-                                <span class="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                                <span>Last updated: {{ lastUpdatedText }}</span>
-                            </div>
+                            <DatePicker v-model="selectedMonth" />
                         </div>
 
                         <Button variant="outline" size="sm" class="gap-2 rounded-xl" :disabled="isRefreshing"
@@ -385,7 +403,7 @@ watch(selectedPeriod, async () => {
                                     <span v-else>{{ formatNumber(summary.total_energy_kwh) }} kWh</span>
                                 </div>
                                 <p class="text-xs text-muted-foreground">
-                                    {{ isDayView ? 'Recorded today' : 'Recorded this month' }}
+                                    <!-- {{ isDayView ? 'Recorded today' : 'Recorded this month' }} -->
                                 </p>
                             </div>
                             <div
@@ -523,7 +541,7 @@ watch(selectedPeriod, async () => {
                             </div>
 
                             <Button variant="outline" size="sm" class="rounded-xl" @click="openModal">
-                                View all  
+                                View all
                                 <span v-if="recentAlerts.length > 0">({{ recentAlerts.length }})</span>
                             </Button>
                         </div>
@@ -563,7 +581,8 @@ watch(selectedPeriod, async () => {
                                         </p>
                                     </div>
 
-                                    <Badge :variant="recentAlerts[alert]?.severity === 'high' ? 'destructive' : 'outline'"
+                                    <Badge
+                                        :variant="recentAlerts[alert]?.severity === 'high' ? 'destructive' : 'outline'"
                                         class="shrink-0 rounded-full uppercase text-[10px]">
                                         {{ recentAlerts[alert]?.severity }}
                                     </Badge>

@@ -34,6 +34,7 @@ type ReadingRepository interface {
 		ctx context.Context,
 		userID int64,
 		rangeType string,
+		month, year *int,
 	) ([]ChartPoint, error)
 
 	GetAnalyticsEnergyChart(
@@ -276,7 +277,29 @@ func (r *readingRepo) GetEnergyChart(
 	ctx context.Context,
 	userID int64,
 	rangeType string,
+	month, year *int,
 ) ([]ChartPoint, error) {
+
+	monthStart := time.Now()
+
+	if month != nil {
+		m := time.Month(*month)
+
+		y := monthStart.Year()
+		if year != nil {
+			y = *year
+		}
+
+		monthStart = time.Date(y, m, 1, 0, 0, 0, 0, time.UTC)
+	} else {
+		monthStart = time.Date(
+			monthStart.Year(),
+			monthStart.Month(),
+			1,
+			0, 0, 0, 0,
+			time.UTC,
+		)
+	}
 
 	var query string
 
@@ -363,8 +386,8 @@ func (r *readingRepo) GetEnergyChart(
 		query = `
 			WITH days AS (
 				SELECT generate_series(
-					date_trunc('month', NOW()),
-					date_trunc('month', NOW()) + INTERVAL '1 month - 1 day',
+					date_trunc('month', $2::timestamp),
+					date_trunc('month', $2::timestamp) + INTERVAL '1 month - 1 day',
 					INTERVAL '1 day'
 				)::date AS day
 			),
@@ -372,7 +395,8 @@ func (r *readingRepo) GetEnergyChart(
 				SELECT
 					DATE(t.ts) AS day,
 					SUM(
-						(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power) / 3600000.0
+						(LEAST(EXTRACT(EPOCH FROM (t.ts - t.prev_ts)), 5) * t.power)
+						/ 3600000.0
 					) AS value
 				FROM (
 					SELECT
@@ -386,11 +410,13 @@ func (r *readingRepo) GetEnergyChart(
 					JOIN appliances a ON a.id = er.appliance_id
 					WHERE
 						a.user_id = $1
-						AND er.ts >= date_trunc('month', NOW())
+						AND er.ts >= date_trunc('month', $2::timestamp)
+						AND er.ts < date_trunc('month', $2::timestamp) + INTERVAL '1 month'
 				) t
 				WHERE prev_ts IS NOT NULL
 				GROUP BY day
 			)
+
 			SELECT
 				TO_CHAR(d.day, 'DD') AS label,
 				COALESCE(e.value, 0) AS value
@@ -400,7 +426,8 @@ func (r *readingRepo) GetEnergyChart(
 		`
 	}
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.QueryContext(ctx, query, userID, monthStart)
+
 	if err != nil {
 		return nil, err
 	}

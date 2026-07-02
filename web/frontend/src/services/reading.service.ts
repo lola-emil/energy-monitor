@@ -33,14 +33,14 @@ export interface AnalyticsResponse {
 }
 
 export const readingService = {
-    async getSummary(params: { range: string }): Promise<ReadingSummary> {
+    async getSummary(params: { range: string, month?: string, year?: string }): Promise<ReadingSummary> {
         const response = await api.get("/readings/summary", { params });
         return response.data;
     },
 
-    async getChart(range: string): Promise<ChartPoint[]> {
+    async getChart(params: { range: string, month?: string, year?: string }): Promise<ChartPoint[]> {
         const res = await api.get("/readings/chart", {
-            params: { range }
+            params
         });
         return res.data;
     },

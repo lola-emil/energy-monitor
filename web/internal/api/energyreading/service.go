@@ -82,8 +82,14 @@ func (s *ReadingService) GetEnergyChart(
 	ctx context.Context,
 	userID int64,
 	rangeType string,
+	month, year *int,
 ) ([]energyreading.ChartPoint, error) {
-	return s.repo.GetEnergyChart(ctx, userID, rangeType)
+	return s.repo.GetEnergyChart(ctx,
+		userID,
+		rangeType,
+		month,
+		year,
+	)
 }
 
 func (s *ReadingService) GetAnalytics(

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import {
     Popover,
@@ -7,13 +7,36 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import {
-    Select, SelectTrigger, SelectValue,
+    Select,
+    SelectTrigger,
+    SelectValue,
     SelectContent,
     SelectItem,
 } from '@/components/ui/select'
 
-const selectedYear = ref(new Date().getFullYear())
-const selectedMonth = ref<number | null>(null)
+export interface MonthPickerValue {
+    year: number
+    month: number | null
+}
+
+const model = defineModel<MonthPickerValue>({
+    default: () => ({
+        year: new Date().getFullYear(),
+        month: null,
+    }),
+})
+
+const emit = defineEmits<{
+    (e: 'onSelect', value: MonthPickerValue): void
+}>()
+
+const selectedYear = ref(model.value.year)
+const selectedMonth = ref(model.value.month)
+
+watch(model, (value) => {
+    selectedYear.value = value.year
+    selectedMonth.value = value.month
+})
 
 const months = [
     'Jan', 'Feb', 'Mar',
@@ -28,10 +51,24 @@ const displayValue = computed(() => {
     return `${months[selectedMonth.value]} ${selectedYear.value}`
 })
 
-function selectMonth(index: number) {
-    selectedMonth.value = index
+function updateModel() {
+    const value = {
+        year: selectedYear.value,
+        month: selectedMonth.value,
+    }
+
+    model.value = value
+    emit('onSelect', value)
 }
 
+function selectMonth(index: number) {
+    selectedMonth.value = index;
+    updateModel()
+}
+
+watch(selectedYear, () => {
+    updateModel()
+})
 </script>
 
 <template>
