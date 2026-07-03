@@ -26,14 +26,6 @@ ADD COLUMN user_id BIGINT;
 ALTER TABLE settings
 ADD COLUMN user_id BIGINT;
 
--- 4. Create a default admin user (for existing system)
-INSERT INTO users (email, password_hash, name, role)
-VALUES (
-    'admin@local',
-    '$2a$10$REPLACE_WITH_BCRYPT_HASH',
-    'Default Admin',
-    'admin'
-);
 
 -- 5. Assign existing data to this default user
 -- (assuming first user = ID 1)

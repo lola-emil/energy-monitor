@@ -28,10 +28,6 @@ CREATE TABLE settings (
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Insert default row (id = 1)
-INSERT INTO settings (id) VALUES (1)
-ON CONFLICT DO NOTHING;
-
 -- +goose Down
 SELECT 'down SQL query';
 DROP TABLE IF EXISTS settings;
