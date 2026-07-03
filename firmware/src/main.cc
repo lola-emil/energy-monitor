@@ -6,7 +6,7 @@
 #include "pzem_manager.hh"
 #include "wifi_manager.hh"
 
-const char* mqtt_server = "192.168.194.181";
+const char* mqtt_server = "192.168.254.119";
 
 SemaphoreHandle_t mutex;
 
@@ -50,6 +50,11 @@ void handleMQTT(void*) {
       xSemaphoreGive(mutex);
 
       sendData(DEVICE_ID, dataCopy);
+
+      digitalWrite(LED_MQTT_PIN, LED_ON);
+      delay(50);
+      digitalWrite(LED_MQTT_PIN, LED_OFF);
+
     }
   }
 }
