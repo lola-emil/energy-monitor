@@ -1,12 +1,12 @@
 #include <Arduino.h>
 
-#include "pins.hh"
 #include "device_utils.hh"
 #include "mqtt_manager.hh"
+#include "pins.hh"
 #include "pzem_manager.hh"
 #include "wifi_manager.hh"
 
-const char* mqtt_server = "192.168.254.119";
+const char *mqtt_server = "192.168.254.119";
 
 SemaphoreHandle_t mutex;
 
@@ -17,7 +17,7 @@ String DEVICE_ID;
 
 PZEMData pzemData;
 
-void handlePZEM(void*) {
+void handlePZEM(void *) {
   while (true) {
     xSemaphoreTake(mutex, portMAX_DELAY);
     readPZEM(pzemData);
@@ -27,7 +27,7 @@ void handlePZEM(void*) {
   }
 }
 
-void handleMQTT(void*) {
+void handleMQTT(void *pvParameters) {
   PZEMData dataCopy;
 
   while (true) {
@@ -37,6 +37,7 @@ void handleMQTT(void*) {
         reconnectMQTT();
       }
 
+      vTaskDelay(pdMS_TO_TICKS(100));
       continue;
     }
 
@@ -45,17 +46,21 @@ void handleMQTT(void*) {
     if (millis() - lastPublish >= 1000) {
       lastPublish = millis();
 
-      xSemaphoreTake(mutex, portMAX_DELAY);
-      dataCopy = pzemData;
-      xSemaphoreGive(mutex);
+      if (xSemaphoreTake(mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        dataCopy = pzemData;
+        xSemaphoreGive(mutex);
+      }
 
-      sendData(DEVICE_ID, dataCopy);
+      if (isReadingValid(dataCopy)) {
+        sendData(DEVICE_ID, dataCopy);
 
-      digitalWrite(LED_MQTT_PIN, LED_ON);
-      delay(50);
-      digitalWrite(LED_MQTT_PIN, LED_OFF);
-
+        digitalWrite(LED_MQTT_PIN, LED_ON);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        digitalWrite(LED_MQTT_PIN, LED_OFF);
+      }
     }
+
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -79,12 +84,12 @@ void setup() {
 
   if (mutex == NULL) {
     Serial.println("Failed to create mutex");
-    while (true);
+    while (true)
+      ;
   }
 
   xTaskCreatePinnedToCore(handlePZEM, "PZEM", 2048, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(handleMQTT, "MQTT", 8192, NULL, 1, NULL, 1);
-
 }
 
 void loop() {}

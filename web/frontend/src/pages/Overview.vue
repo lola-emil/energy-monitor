@@ -54,8 +54,8 @@ const selectedPeriod = ref<Period>('month')
 const now = ref(new Date())
 
 const selectedMonth = ref({
-    year: 2026,
-    month: 6,
+    year: now.value.getFullYear(),
+    month: now.value.getMonth() + 1,
 })
 
 const isLoadingSummary = ref(true)
@@ -116,7 +116,7 @@ const fetchSummary = async () => {
         let year: number | undefined;
 
         if (selectedMonth.value.month && selectedMonth.value.year) {
-            month = selectedMonth.value.month + 1;
+            month = selectedMonth.value.month;
             year = selectedMonth.value.year;
         }
 
@@ -143,7 +143,7 @@ const fetchChart = async () => {
         let year: number | undefined;
 
         if (selectedMonth.value.month && selectedMonth.value.year) {
-            month = selectedMonth.value.month + 1;
+            month = selectedMonth.value.month;
             year = selectedMonth.value.year;
         }
 
@@ -178,6 +178,7 @@ const fetchRecentAlerts = async () => {
     try {
         isLoadingRecentAlerts.value = true
         recentAlerts.value = await alertService.getRecent()
+        console.log(recentAlerts.value);
     } catch (error) {
         console.error('Failed to load recent alerts:', error)
         recentAlerts.value = []
@@ -357,7 +358,7 @@ watch(selectedPeriod, async () => {
                     </div>
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                        <div class="flex gap-3">
+                        <div class="flex gap-3 items-center">
                             <!-- <div class="inline-flex items-center rounded-xl border bg-muted/30 p-1">
                                 <Button variant="ghost" size="sm" class="rounded-lg" :class="selectedPeriod === 'day'
                                     ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
@@ -370,6 +371,8 @@ watch(selectedPeriod, async () => {
                                     This Month
                                 </Button>
                             </div> -->
+
+                            <span>For the month of: </span>
 
                             <DatePicker v-model="selectedMonth" />
                         </div>
@@ -569,22 +572,21 @@ watch(selectedPeriod, async () => {
                         </div>
 
                         <div v-else class="grid gap-3 md:grid-cols-2">
-                            <div v-for="alert in 4" :key="recentAlerts[alert]?.id"
+                            <div v-for="alert in recentAlerts.slice(0, 4)" :key="alert?.id"
                                 class="rounded-xl border bg-muted/20 p-4 transition-colors hover:bg-muted/40">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="text-sm font-medium leading-5">
-                                            {{ recentAlerts[alert]?.message }}
+                                            {{ alert?.message }}
                                         </p>
                                         <p class="mt-2 text-xs text-muted-foreground">
-                                            {{ formatTime(recentAlerts[alert]?.triggered_at) }}
+                                            {{ formatTime(alert?.triggered_at) }}
                                         </p>
                                     </div>
 
-                                    <Badge
-                                        :variant="recentAlerts[alert]?.severity === 'high' ? 'destructive' : 'outline'"
+                                    <Badge :variant="alert?.severity === 'high' ? 'destructive' : 'outline'"
                                         class="shrink-0 rounded-full uppercase text-[10px]">
-                                        {{ recentAlerts[alert]?.severity }}
+                                        {{ alert?.severity }}
                                     </Badge>
                                 </div>
                             </div>

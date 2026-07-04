@@ -8,12 +8,15 @@ void initPZEM() {
     pzemSerial.begin(9600, SERIAL_8N1, PZEM_RX_PIN, PZEM_TX_PIN);
 }
 
-bool readPZEM(PZEMData& data) {
+void readPZEM(PZEMData& data) {
     data.voltage = pzem.voltage();
     data.current = pzem.current();
     data.power = pzem.power();
     data.energy = pzem.energy();
     data.frequency = pzem.frequency();
 
+}
+
+bool isReadingValid(PZEMData& data) {
     return !isnan(data.voltage);
 }

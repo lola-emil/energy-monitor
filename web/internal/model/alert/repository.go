@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -49,6 +50,7 @@ type AlertRepository interface {
 		applianceID *int64,
 		rangeType string,
 		limit int,
+		month, year *int,
 	) ([]Alert, error)
 
 	GetRecentByAppliance(
@@ -244,9 +246,33 @@ func (r *alertRepo) GetAnalyticsAlerts(
 	applianceID *int64,
 	rangeType string,
 	limit int,
+	month, year *int,
 ) ([]Alert, error) {
 
-	condition := buildRangeCondition(rangeType)
+	args := []any{userID}
+	nextParam := 2
+
+	applianceFilter := ""
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, rangeArgs...)
+
+	limitParam := len(args) + 1
 
 	query := fmt.Sprintf(`
 		SELECT
@@ -254,22 +280,18 @@ func (r *alertRepo) GetAnalyticsAlerts(
 			al.message,
 			al.severity,
 			al.triggered_at,
-			a.id
+			a.id,
+			a.name
 		FROM alerts al
 		JOIN appliances a ON a.id = al.appliance_id
-		JOIN energy_readings er ON a.id = er.appliance_id
 		WHERE
 			a.user_id = $1
 			AND %s
 			%s
 		ORDER BY al.triggered_at DESC
 		LIMIT $%d
-	`, condition, buildApplianceFilter(applianceID, 2), 2+boolToInt(applianceID != nil))
+	`, condition, applianceFilter, limitParam)
 
-	args := []any{userID}
-	if applianceID != nil {
-		args = append(args, *applianceID)
-	}
 	args = append(args, limit)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -288,6 +310,7 @@ func (r *alertRepo) GetAnalyticsAlerts(
 			&a.Severity,
 			&a.TriggeredAt,
 			&a.ApplianceID,
+			&a.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -397,16 +420,47 @@ func buildRangeQuery(rangeType string) (interval string, labelFormat string) {
 	}
 }
 
-func buildRangeCondition(rangeType string) string {
+func buildRangeCondition(
+	rangeType string,
+	month, year *int,
+	startParam int,
+) (string, []any, error) {
+
 	switch rangeType {
 	case "today":
-		return "er.ts >= date_trunc('day', NOW())"
+		return "al.triggered_at >= date_trunc('day', NOW())", nil, nil
+
 	case "7d":
-		return "er.ts >= NOW() - INTERVAL '7 days'"
+		return "al.triggered_at >= NOW() - INTERVAL '7 days'", nil, nil
+
 	case "month":
-		return "er.ts >= date_trunc('month', NOW())"
+		now := time.Now()
+
+		m := int(now.Month())
+		if month != nil {
+			m = *month
+		}
+
+		y := now.Year()
+		if year != nil {
+			y = *year
+		}
+
+		if m < 1 || m > 12 {
+			return "", nil, fmt.Errorf("invalid month")
+		}
+
+		start := time.Date(y, time.Month(m), 1, 0, 0, 0, 0, time.UTC)
+		end := start.AddDate(0, 1, 0)
+
+		return fmt.Sprintf(
+			"al.triggered_at >= $%d AND al.triggered_at < $%d",
+			startParam,
+			startParam+1,
+		), []any{start, end}, nil
+
 	default:
-		return "er.ts >= date_trunc('day', NOW())"
+		return "", nil, fmt.Errorf("invalid range type")
 	}
 }
 

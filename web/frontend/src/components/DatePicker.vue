@@ -31,13 +31,12 @@ const emit = defineEmits<{
 }>()
 
 const selectedYear = ref(model.value.year)
-const selectedMonth = ref(model.value.month)
+const selectedMonth = ref<number | null>(model.value.month)
 
 watch(model, (value) => {
     selectedYear.value = value.year
     selectedMonth.value = value.month
 })
-
 const months = [
     'Jan', 'Feb', 'Mar',
     'Apr', 'May', 'Jun',
@@ -46,9 +45,11 @@ const months = [
 ]
 
 const displayValue = computed(() => {
-    if (selectedMonth.value === null) return 'Select month'
+    if (selectedMonth.value == null) {
+        return 'Select month'
+    }
 
-    return `${months[selectedMonth.value]} ${selectedYear.value}`
+    return `${months[selectedMonth.value - 1]} ${selectedYear.value}`
 })
 
 function updateModel() {
@@ -93,7 +94,7 @@ watch(selectedYear, () => {
             </Select>
 
             <div class="grid grid-cols-3 gap-2">
-                <Button v-for="(month, index) in months" :key="month" variant="outline" @click="selectMonth(index)">
+                <Button v-for="(month, index) in months" :key="month" variant="outline" @click="selectMonth(index + 1)">
                     {{ month }}
                 </Button>
             </div>

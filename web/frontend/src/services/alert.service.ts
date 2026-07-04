@@ -4,7 +4,8 @@ export interface Alert {
   id: number
   message: string
   severity: 'low' | 'medium' | 'high'
-  triggered_at: string
+  triggered_at: string,
+  name: string;
 }
 
 export const alertService = {
@@ -20,7 +21,9 @@ export const alertService = {
 
   async getAnalyticsAlerts(params: {
     range: string
-    appliance_id?: number
+    appliance_id?: number,
+    month?: string,
+    year?: string,
   }) {
     const res = await api.get("/alerts/analytics", { params })
     return res.data

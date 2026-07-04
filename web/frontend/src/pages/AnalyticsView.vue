@@ -34,7 +34,7 @@ import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/compon
 import { useThemeColors } from '@/composables/useThemeColors'
 import { readingService, type AnalyticsResponse } from '@/services/reading.service'
 import { applianceService } from '@/services/appliance.service'
-import { alertService } from '@/services/alert.service'
+import { alertService, type Alert } from '@/services/alert.service'
 import type { Appliance } from '@/types/appliance'
 import { formatTime } from '@/lib/time'
 
@@ -61,7 +61,7 @@ const isLoadingAlerts = ref(false)
 const isAppliancesLoading = ref(false)
 
 const appliances = ref<Appliance[]>([])
-const alerts = ref<any[]>([])
+const alerts = ref<Alert[]>([])
 const detailedReadings = ref<any[]>([])
 
 const total = ref(0)
@@ -82,6 +82,11 @@ const defaultAnalytics: AnalyticsResponse = {
 
 const analyticsData = ref<AnalyticsResponse>(defaultAnalytics)
 
+const selectedMonth = ref({
+    year: 2026,
+    month: 6,
+})
+
 const selectedApplianceId = computed<number | undefined>(() => {
     if (selectedAppliance.value === 'all') return undefined
     return Number(selectedAppliance.value)
@@ -95,17 +100,6 @@ const selectedApplianceLabel = computed(() => {
     return found?.name ?? 'Selected device'
 })
 
-const lastUpdatedText = computed(() =>
-    lastUpdated.value.toLocaleString(undefined, {
-        hour12: false,
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    })
-)
-
 const rangeLabel = computed(() => {
     switch (selectedRange.value) {
         case 'today':
@@ -113,9 +107,12 @@ const rangeLabel = computed(() => {
         case '7d':
             return 'Last 7 days'
         case 'month':
-            return 'This month'
+            return 'Monthly'
     }
 })
+
+
+const showMonthPicker = computed(() => selectedRange.value == 'month')
 
 const hasEnergyData = computed(() => analyticsData.value.energy?.length > 0)
 const hasVoltageData = computed(() => analyticsData.value.voltage_current?.length > 0)
@@ -135,10 +132,23 @@ const fetchAppliances = async () => {
 const fetchAnalytics = async () => {
     try {
         isLoading.value = true
+
+        let month: number | undefined
+        let year: number | undefined
+
+        if (selectedMonth.value.month && selectedMonth.value.year) {
+            month = selectedMonth.value.month + 1
+            year = selectedMonth.value.year
+        }
+
+
         analyticsData.value = await readingService.getAnalytics({
             range: selectedRange.value,
             appliance_id: selectedApplianceId.value,
+            month: month ? month.toString() : undefined,
+            year: year ? year.toString() : undefined,
         })
+
         lastUpdated.value = new Date()
     } catch (err) {
         console.error('Analytics error:', err)
@@ -151,11 +161,22 @@ const fetchAnalytics = async () => {
 const fetchDetailedReadings = async () => {
     try {
         isLoadingTable.value = true
+
+        let month: number | undefined
+        let year: number | undefined
+
+        if (selectedMonth.value.month && selectedMonth.value.year) {
+            month = selectedMonth.value.month + 1;
+            year = selectedMonth.value.year;
+        }
+
         const res = await readingService.getDetailedReadings({
             range: selectedRange.value,
             appliance_id: selectedApplianceId.value,
             page: page.value,
             page_size: pageSize.value,
+            month: month ? month.toString() : undefined,
+            year: year ? year.toString() : undefined,
         })
         detailedReadings.value = res.data || []
         total.value = res.total || 0
@@ -171,9 +192,20 @@ const fetchDetailedReadings = async () => {
 const fetchAlerts = async () => {
     try {
         isLoadingAlerts.value = true
+
+        let month: number | undefined
+        let year: number | undefined
+
+        if (selectedMonth.value.month && selectedMonth.value.year) {
+            month = selectedMonth.value.month + 1;
+            year = selectedMonth.value.year;
+        }
+
         const data = await alertService.getAnalyticsAlerts({
             range: selectedRange.value,
             appliance_id: selectedApplianceId.value,
+            month: month ? month.toString() : undefined,
+            year: year ? year.toString() : undefined,
         })
         alerts.value = Array.isArray(data) ? data : []
     } catch (err) {
@@ -409,7 +441,7 @@ onMounted(async () => {
     await refreshAll()
 })
 
-watch([selectedRange, selectedAppliance], async () => {
+watch([selectedRange, selectedAppliance, selectedMonth], async () => {
     page.value = 1
     await refreshAll()
 })
@@ -465,13 +497,14 @@ watch(page, fetchDetailedReadings)
                             <Button size="sm" variant="ghost" class="rounded-lg" :class="selectedRange === 'month'
                                 ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
                                 : ''" @click="selectedRange = 'month'">
-                                This month
+                                Monthly
                             </Button>
                         </div>
                     </div>
 
-                    <div>
-                        <DatePicker></DatePicker>
+                    <div v-if="showMonthPicker">
+                        <span>For the month of: </span>
+                        <DatePicker v-model="selectedMonth" />
                     </div>
 
                     <Separator orientation="vertical" class="hidden h-6 lg:block" />
@@ -770,7 +803,7 @@ watch(page, fetchDetailedReadings)
                                             {{ alert.message }}
                                         </p>
                                         <p class="mt-2 text-xs text-muted-foreground">
-                                            {{ alert.time }} · {{ alert.device }}
+                                            {{ alert.name }} | {{ alert.triggered_at }}
                                         </p>
                                     </div>
                                     <Badge :variant="alert.severity === 'high' ? 'destructive' : 'outline'"

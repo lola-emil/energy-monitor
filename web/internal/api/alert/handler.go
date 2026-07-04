@@ -5,6 +5,7 @@ import (
 	"energy-monitor-server/internal/model/alert"
 	httputil "energy-monitor-server/internal/utils/http"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -72,6 +73,30 @@ func (h *AlertHandler) GetAnalyticsAlerts(w http.ResponseWriter, r *http.Request
 		rangeType = "today"
 	}
 
+	var month *int
+
+	monthStr := r.URL.Query().Get("month")
+	if monthStr != "" {
+		m, err := strconv.Atoi(monthStr)
+		if err != nil {
+			// handle invalid month
+			return
+		}
+		month = &m
+	}
+
+	var year *int
+
+	yearStr := r.URL.Query().Get("year")
+	if yearStr != "" {
+		y, err := strconv.Atoi(yearStr)
+		if err != nil {
+			// handle invalid year
+			return
+		}
+		year = &y
+	}
+
 	var applianceID *int64
 	if idStr := r.URL.Query().Get("appliance_id"); idStr != "" && idStr != "all" {
 		id, _ := strconv.ParseInt(idStr, 10, 64)
@@ -83,7 +108,10 @@ func (h *AlertHandler) GetAnalyticsAlerts(w http.ResponseWriter, r *http.Request
 		userID,
 		applianceID,
 		rangeType,
+		month, year,
 	)
+
+	log.Println(len(data))
 
 	if err != nil {
 		fmt.Println(err)

@@ -30,6 +30,7 @@ func (s *AlertService) GetAnalyticsAlerts(
 	userID int64,
 	applianceID *int64,
 	rangeType string,
+	month, year *int,
 ) ([]alert.Alert, error) {
 
 	return s.repo.GetAnalyticsAlerts(
@@ -38,6 +39,7 @@ func (s *AlertService) GetAnalyticsAlerts(
 		applianceID,
 		rangeType,
 		5,
+		month, year,
 	)
 }
 

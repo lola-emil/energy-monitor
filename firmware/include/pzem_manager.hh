@@ -12,6 +12,7 @@ struct PZEMData {
 };
 
 void initPZEM();
-bool readPZEM(PZEMData& data);
+void readPZEM(PZEMData& data);
+bool isReadingValid(PZEMData& data);
 
 #endif

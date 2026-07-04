@@ -33,12 +33,12 @@ export interface AnalyticsResponse {
 }
 
 export const readingService = {
-    async getSummary(params: { range: string, month?: string, year?: string }): Promise<ReadingSummary> {
+    async getSummary(params: { range: string, month?: string, year?: string; }): Promise<ReadingSummary> {
         const response = await api.get("/readings/summary", { params });
         return response.data;
     },
 
-    async getChart(params: { range: string, month?: string, year?: string }): Promise<ChartPoint[]> {
+    async getChart(params: { range: string, month?: string, year?: string; }): Promise<ChartPoint[]> {
         const res = await api.get("/readings/chart", {
             params
         });
@@ -48,6 +48,8 @@ export const readingService = {
     async getAnalytics(params: {
         range: string;
         appliance_id?: number;
+        month?: string,
+        year?: string,
     }): Promise<AnalyticsResponse> {
         const res = await api.get("/readings/analytics", {
             params: {
@@ -59,11 +61,14 @@ export const readingService = {
 
     async getDetailedReadings(params: {
         range: string,
-        appliance_id?: number
+        appliance_id?: number;
         page?: number,
         page_size?: number,
+
+        month?: string,
+        year?: string,
     }) {
-        const res = await api.get("/readings/detailed", { params })
-        return res.data
+        const res = await api.get("/readings/detailed", { params });
+        return res.data;
     }
 };
