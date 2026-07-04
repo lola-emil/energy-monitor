@@ -206,7 +206,6 @@ func (s *ReadingService) ExportDetailedReadings(
 		"Voltage",
 		"Current",
 		"Power",
-		"Frequency",
 	})
 
 	for _, reading := range readings {
@@ -217,7 +216,6 @@ func (s *ReadingService) ExportDetailedReadings(
 			strconv.FormatFloat(reading.Voltage, 'f', -1, 64),
 			strconv.FormatFloat(reading.Current, 'f', -1, 64),
 			strconv.FormatFloat(reading.Power, 'f', -1, 64),
-			strconv.FormatFloat(reading.FrequencyHz, 'f', -1, 64),
 		})
 	}
 
