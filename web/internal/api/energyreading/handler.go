@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"energy-monitor-server/internal/model/energyreading"
 	httputil "energy-monitor-server/internal/utils/http"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type ReadingHandler struct {
@@ -274,4 +277,80 @@ func (h *ReadingHandler) GetDetailedReadings(w http.ResponseWriter, r *http.Requ
 		"data":  data,
 		"total": total,
 	})
+}
+
+func (h *ReadingHandler) ExportDetailedReadings(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID := httputil.GetUserID(r)
+
+	var applianceID *int64
+	if value := r.URL.Query().Get("appliance_id"); value != "" {
+		id, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid appliance_id", http.StatusBadRequest)
+			return
+		}
+
+		applianceID = &id
+	}
+
+	rangeType := r.URL.Query().Get("range_type")
+
+	var month *int
+	if value := r.URL.Query().Get("month"); value != "" {
+		m, err := strconv.Atoi(value)
+		if err != nil {
+			http.Error(w, "Invalid month", http.StatusBadRequest)
+			return
+		}
+
+		month = &m
+	}
+
+	var year *int
+	if value := r.URL.Query().Get("year"); value != "" {
+		y, err := strconv.Atoi(value)
+		if err != nil {
+			http.Error(w, "Invalid year", http.StatusBadRequest)
+			return
+		}
+
+		year = &y
+	}
+
+	csvData, err := h.service.ExportDetailedReadings(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+		month,
+		year,
+	)
+	if err != nil {
+		http.Error(
+			w,
+			"Failed to export detailed readings",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	filename := fmt.Sprintf(
+		"detailed-readings-%s.csv",
+		time.Now().Format("2006-01-02"),
+	)
+
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set(
+		"Content-Disposition",
+		fmt.Sprintf(`attachment; filename="%s"`, filename),
+	)
+	w.Header().Set("Content-Length", strconv.Itoa(len(csvData)))
+
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(csvData); err != nil {
+		log.Printf("failed to write CSV response: %v", err)
+	}
 }

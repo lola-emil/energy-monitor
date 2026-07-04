@@ -70,6 +70,14 @@ type ReadingRepository interface {
 		limit int,
 		offset int,
 	) ([]EnergyReading, int, error)
+
+	GetDetailedReadingsByMonthNoLimit(
+		ctx context.Context,
+		userID int64,
+		applianceID *int64,
+		rangeType string,
+		month, year *int,
+	) ([]EnergyReadingWithApplianceName, error)
 }
 
 func NewReadingRepository(db *sqlx.DB) ReadingRepository {
@@ -832,6 +840,88 @@ func (r *readingRepo) GetDetailedReadings(
 	}
 
 	return result, total, nil
+}
+
+func (r *readingRepo) GetDetailedReadingsByMonthNoLimit(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+	month, year *int,
+) ([]EnergyReadingWithApplianceName, error) {
+
+	args := []any{userID}
+
+	nextParam := 2
+
+	applianceFilter := ""
+
+	if applianceID != nil {
+		applianceFilter = fmt.Sprintf("AND er.appliance_id = $%d", nextParam)
+		args = append(args, *applianceID)
+		nextParam++
+	}
+
+	condition, rangeArgs, err := buildRangeCondition(
+		rangeType,
+		month,
+		year,
+		nextParam,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, rangeArgs...)
+
+	dataQuery := fmt.Sprintf(`
+		SELECT
+			a.id,
+			a.name,
+			er.ts,
+			er.voltage,
+			er.current,
+			er.power,
+			er.energy_kwh
+		FROM energy_readings er
+		JOIN appliances a ON a.id = er.appliance_id
+		WHERE
+			a.user_id = $1
+			AND %s
+			%s
+		ORDER BY er.ts DESC
+	`, condition, applianceFilter)
+
+	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []EnergyReadingWithApplianceName
+
+	for rows.Next() {
+		var r EnergyReadingWithApplianceName
+		if err := rows.Scan(
+			&r.ApplianceID,
+			&r.ApplianceName,
+			&r.Timestamp,
+			&r.Voltage,
+			&r.Current,
+			&r.Power,
+			&r.EnergyKWh,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+
+	if result == nil {
+		result = []EnergyReadingWithApplianceName{}
+	}
+
+	return result, nil
 }
 
 func groupByUnit(rangeType string) string {

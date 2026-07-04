@@ -1,10 +1,14 @@
 package energyreading
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"energy-monitor-server/internal/model/energyreading"
 	"energy-monitor-server/internal/model/setting"
 	"energy-monitor-server/internal/services"
+	"strconv"
+	"time"
 )
 
 type ReadingService struct {
@@ -171,4 +175,57 @@ func (s *ReadingService) GetDetailedReadings(
 		pageSize,
 		offset,
 	)
+}
+
+func (s *ReadingService) ExportDetailedReadings(
+	ctx context.Context,
+	userID int64,
+	applianceID *int64,
+	rangeType string,
+	month, year *int,
+) ([]byte, error) {
+	readings, err := s.repo.GetDetailedReadingsByMonthNoLimit(
+		ctx,
+		userID,
+		applianceID,
+		rangeType,
+		month, year,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	writer.Write([]string{
+		"Appliance ID",
+		"Appliance Name",
+		"Timestamp",
+		"Voltage",
+		"Current",
+		"Power",
+		"Frequency",
+	})
+
+	for _, reading := range readings {
+		writer.Write([]string{
+			strconv.FormatInt(reading.ApplianceID, 10),
+			reading.ApplianceName,
+			reading.Timestamp.Format(time.RFC3339),
+			strconv.FormatFloat(reading.Voltage, 'f', -1, 64),
+			strconv.FormatFloat(reading.Current, 'f', -1, 64),
+			strconv.FormatFloat(reading.Power, 'f', -1, 64),
+			strconv.FormatFloat(reading.FrequencyHz, 'f', -1, 64),
+		})
+	}
+
+	writer.Flush()
+
+	if err := writer.Error(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

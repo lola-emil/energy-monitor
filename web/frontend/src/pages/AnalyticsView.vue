@@ -64,6 +64,8 @@ const appliances = ref<Appliance[]>([])
 const alerts = ref<Alert[]>([])
 const detailedReadings = ref<any[]>([])
 
+const isExporting = ref(false);
+
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
@@ -216,6 +218,42 @@ const fetchAlerts = async () => {
     }
 }
 
+const handleExport = async () => {
+
+    try {
+        isExporting.value = true;
+
+        let month: number | undefined
+        let year: number | undefined
+
+        if (selectedMonth.value.month && selectedMonth.value.year) {
+            month = selectedMonth.value.month + 1;
+            year = selectedMonth.value.year;
+        }
+
+        const url = await readingService.exportDetailedReadings({
+            appliance_id: selectedApplianceId.value,
+            range_type: selectedRange.value,
+            month: month ? month.toString() : undefined,
+            year: year ? year.toString() : undefined,
+        });
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "detailed-readings.csv";
+        document.body.appendChild(link);
+        link.click();
+
+        link.remove();
+
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Failed to export readings:", error);
+    } finally {
+        isExporting.value = false;
+    }
+}
+
 const refreshAll = async () => {
     await Promise.all([
         fetchAnalytics(),
@@ -223,6 +261,7 @@ const refreshAll = async () => {
         fetchAlerts(),
     ])
 }
+
 
 const energyChartOptions = computed(() => {
     if (!colors.value) return {}
@@ -689,7 +728,7 @@ watch(page, fetchDetailedReadings)
                                     Raw measurements for the selected filters.
                                 </CardDescription>
                             </div>
-                            <Button variant="outline" size="sm" class="gap-2 rounded-xl">
+                            <Button @click="handleExport" variant="outline" size="sm" class="gap-2 rounded-xl">
                                 <DownloadIcon class="h-4 w-4" />
                                 Export CSV
                             </Button>

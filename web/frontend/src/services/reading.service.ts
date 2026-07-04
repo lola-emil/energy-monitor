@@ -70,5 +70,36 @@ export const readingService = {
     }) {
         const res = await api.get("/readings/detailed", { params });
         return res.data;
+    },
+
+    async exportDetailedReadings(params: {
+        appliance_id?: number;
+        range_type: string,
+        month?: string,
+        year?: string,
+    }) {
+        const response = await api.get("/readings/export", {
+            params,
+            responseType: "blob",
+        });
+
+        const blob = new Blob([response.data], {
+            type: "text/csv;charset=utf-8",
+        });
+
+        const url = window.URL.createObjectURL(blob);
+
+
+        return url;
+
+        // const link = document.createElement("a");
+        // link.href = url;
+        // link.download = "detailed-readings.csv";
+        // document.body.appendChild(link);
+        // link.click();
+
+        // link.remove();
+
+        // window.URL.revokeObjectURL(url);
     }
 };
