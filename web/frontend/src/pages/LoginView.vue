@@ -171,6 +171,12 @@ const handleLogin = async () => {
                                 <p class="text-center text-xs text-muted-foreground">
                                     Secure access for authorized users only.
                                 </p>
+
+                                <div class="w-full flex justify-center">
+                                    <a href="https://volt-view-eb58d.web.app/contact" target="_blank"
+                                        class="text-sm text-primary underline text-center">Need help?</a>
+                                </div>
+
                             </form>
                         </CardContent>
                     </Card>

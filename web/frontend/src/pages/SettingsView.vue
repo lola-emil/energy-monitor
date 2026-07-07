@@ -279,7 +279,7 @@ onMounted(fetchSettings)
                         <Separator />
 
                         <!-- Offline -->
-                        <div class="flex items-start justify-between gap-4">
+                        <!-- <div class="flex items-start justify-between gap-4">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
                                     <WifiOffIcon class="h-4 w-4 text-primary" />
@@ -291,7 +291,7 @@ onMounted(fetchSettings)
                             </div>
 
                             <Switch v-model="form.enable_offline_alerts" />
-                        </div>
+                        </div> -->
                     </CardContent>
                 </Card>
 

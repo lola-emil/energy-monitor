@@ -318,11 +318,11 @@ watch(selectedMonth, async () => {
     await Promise.all([fetchSummary(), fetchChart()]);
 })
 
-onMounted(refreshDashboard)
-
 watch(selectedPeriod, async () => {
     await Promise.all([fetchSummary(), fetchChart()])
 })
+
+onMounted(refreshDashboard)
 </script>
 
 <template>

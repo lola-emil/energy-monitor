@@ -309,7 +309,7 @@ watch(
             </div>
 
             <!-- Live metrics -->
-            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <Card class="rounded-2xl shadow-sm">
                     <CardContent class="p-5">
                         <div class="flex items-start justify-between">
@@ -390,7 +390,7 @@ watch(
                     </CardContent>
                 </Card>
 
-                <Card class="rounded-2xl shadow-sm">
+                <!-- <Card class="rounded-2xl shadow-sm">
                     <CardContent class="p-5">
                         <div class="flex items-start justify-between">
                             <div class="space-y-2">
@@ -408,7 +408,7 @@ watch(
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> -->
             </section>
 
             <!-- Real-time chart -->
