@@ -36,6 +36,10 @@ import { alertService } from '@/services/alert.service'
 import type { Appliance } from '@/types/appliance'
 import { formatTime } from '@/lib/time'
 
+type ReadingUpdate = {
+    time: string; power: number
+}
+
 use([
     CanvasRenderer,
     LineChart,
@@ -62,7 +66,7 @@ const power = ref<number | null>(null)
 const frequency = ref<number | null>(null)
 const todayEnergy = ref<number | null>(null)
 
-const realtimeSeries = ref<{ time: string; power: number }[]>([])
+const realtimeSeries = ref<ReadingUpdate[]>([])
 
 const alerts = ref<any[]>([])
 
@@ -146,8 +150,22 @@ const refreshPage = async () => {
     await Promise.all([fetchAppliance(), fetchAlerts()])
 }
 
+const MAX_POINTS = 20
+
 const realtimePowerChartOptions = computed(() => {
     if (!colors.value) return {}
+
+    const points = realtimeSeries.value.slice(-MAX_POINTS)
+
+    const labels = [
+        ...points.map(i => i.time),
+        ...Array(MAX_POINTS - points.length).fill(''),
+    ]
+
+    const values = [
+        ...points.map(i => i.power),
+        ...Array(MAX_POINTS - points.length).fill(null),
+    ]
 
     return {
         tooltip: {
@@ -159,10 +177,15 @@ const realtimePowerChartOptions = computed(() => {
             },
             formatter: (params: any) => {
                 const item = params?.[0]
-                if (!item) return ''
+
+                if (!item || item.value == null) {
+                    return ''
+                }
+
                 return `${item.axisValue}<br/>${Number(item.value).toFixed(2)} W`
             },
         },
+
         grid: {
             left: 16,
             right: 16,
@@ -170,51 +193,64 @@ const realtimePowerChartOptions = computed(() => {
             bottom: 20,
             containLabel: true,
         },
+
         xAxis: {
             type: 'category',
             boundaryGap: false,
-            data: realtimeSeries.value.map(i => i.time),
+            data: labels,
+
             axisLabel: {
                 color: colors.value.mutedForeground,
             },
+
             axisLine: {
                 lineStyle: {
                     color: colors.value.border,
                 },
             },
+
             axisTick: {
                 show: false,
             },
         },
+
         yAxis: {
             type: 'value',
+
             axisLabel: {
                 color: colors.value.mutedForeground,
             },
+
             splitLine: {
                 lineStyle: {
                     color: colors.value.border,
                     opacity: 0.3,
                 },
             },
+
             axisTick: {
                 show: false,
             },
         },
+
         series: [
             {
                 name: 'Power',
                 type: 'line',
                 smooth: true,
                 showSymbol: false,
-                data: realtimeSeries.value.map(i => i.power),
+
+                data: values,
+
                 lineStyle: {
                     width: 3,
                     color: colors.value.chart1,
                 },
+
                 itemStyle: {
                     color: colors.value.chart1,
                 },
+
                 areaStyle: {
                     opacity: 0.14,
                     color: colors.value.chart1,
@@ -247,6 +283,10 @@ watch(
         await refreshPage()
     }
 )
+
+watch(() => realtimeSeries.value, () => {
+    console.log(realtimeSeries);
+})
 </script>
 
 <template>

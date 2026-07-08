@@ -93,17 +93,20 @@ func (r *readingRepo) Create(ctx context.Context, reading *EnergyReading) error 
 			current,
 			power,
 			energy_kwh,
+			frequency_hz
 		)
 		VALUES ($1, NOW(), $2, $3, $4, $5, $6)
 		RETURNING id, ts
 	`
 
-	return r.db.QueryRowxContext(ctx, query,
+	return r.db.QueryRowxContext(
+		ctx, query,
 		reading.ApplianceID,
 		reading.Voltage,
 		reading.Current,
 		reading.Power,
 		reading.EnergyKWh,
+		reading.FrequencyHz,
 	).Scan(&reading.ID, &reading.Timestamp)
 }
 

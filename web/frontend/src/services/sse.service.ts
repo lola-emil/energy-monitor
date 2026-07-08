@@ -16,19 +16,30 @@ class SSEService {
     connect(
         onMessage: (payload: ReadingUpdatePayload) => void
     ) {
-        if (this.eventSource) {
-            this.eventSource.close();
+        // Don't recreate an already active connection
+        if (
+            this.eventSource &&
+            this.eventSource.readyState !== EventSource.CLOSED
+        ) {
+            return;
         }
 
         const API_URL = import.meta.env.VITE_API_URL;
 
-        this.eventSource = new EventSource(
+        const eventSource = new EventSource(
             `${API_URL}/stream`
         );
 
-        this.eventSource.onmessage = (event) => {
+        this.eventSource = eventSource;
+
+        eventSource.onopen = () => {
+            console.log("SSE connected");
+        };
+
+        eventSource.onmessage = (event) => {
             try {
-                const payload = JSON.parse(event.data);
+                const payload: ReadingUpdatePayload =
+                    JSON.parse(event.data);
 
                 if (payload.type === "reading_update") {
                     onMessage(payload);
@@ -38,16 +49,21 @@ class SSEService {
             }
         };
 
-        this.eventSource.onerror = (error) => {
-            console.error("SSE connection error:", error);
+        eventSource.onerror = () => {
+            if (eventSource.readyState === EventSource.CONNECTING) {
+                console.warn("SSE disconnected, reconnecting...");
+                return;
+            }
+
+            if (eventSource.readyState === EventSource.CLOSED) {
+                console.warn("SSE connection closed");
+            }
         };
     }
 
     disconnect() {
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
-        }
+        this.eventSource?.close();
+        this.eventSource = null;
     }
 }
 
