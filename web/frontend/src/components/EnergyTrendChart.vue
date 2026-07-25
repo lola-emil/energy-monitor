@@ -37,7 +37,7 @@ const chartData = {
         },
         {
             label: 'Previous Period',
-            backgroundColor: '#f97316', // Orange (Matches inspiration image)
+            backgroundColor: '#f97316',
             borderRadius: 4,
             borderSkipped: false,
             data: previousPeriodData,

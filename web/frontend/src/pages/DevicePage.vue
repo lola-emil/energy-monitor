@@ -49,7 +49,7 @@
                                     <td>
                                         <span
                                             class="font-mono text-xs bg-base-200 text-base-content/80 px-2 py-1 rounded border border-base-300">
-                                            {{ device.id }}
+                                            {{ device.device_code }}
                                         </span>
                                     </td>
 
@@ -71,15 +71,15 @@
                                     </td>
 
                                     <td class="text-base-content/60 text-sm whitespace-nowrap">
-                                        {{ device.lastUpdated }}
+                                        {{ device.updated_at }}
                                     </td>
 
                                     <td>
                                         <span class="badge gap-1.5"
-                                            :class="device.status === 'active' ? 'badge-success text-success-content' : 'badge-ghost text-base-content/60'">
+                                            :class="device.status === 'online' ? 'badge-success text-success-content' : 'badge-ghost text-base-content/60'">
                                             <span class="w-1.5 h-1.5 rounded-full"
-                                                :class="device.status === 'active' ? 'bg-success-content' : 'bg-base-content/40'"></span>
-                                            {{ device.status === 'active' ? 'Active' : 'Offline' }}
+                                                :class="device.status === 'online' ? 'bg-success-content' : 'bg-base-content/40'"></span>
+                                            {{ device.status === 'online' ? 'Active' : 'Offline' }}
                                         </span>
                                     </td>
 
@@ -114,9 +114,8 @@
                     </div>
 
                     <div class="card-footer border-t border-base-300 p-4 flex justify-between items-center bg-base-100">
-                        <span class="text-sm text-base-content/60">Showing {{ filteredDevices.length }} of {{
-                            devices.length
-                        }}
+                        <span class="text-sm text-base-content/60">Showing {{ filteredDevices.length }} of
+                            {{ devices.length }}
                             devices</span>
                         <div class="join">
                             <button class="join-item btn btn-sm">«</button>
@@ -133,29 +132,30 @@
 
 <script setup lang="ts">
 import Navbar from '@/components/Navbar.vue';
-import { ref, computed } from 'vue';
+import { applianceService } from '@/services/appliance.service';
+import type { Appliance } from '@/types/appliance';
+import { ref, computed, onMounted } from 'vue';
 
 const searchQuery = ref('');
 const statusFilter = ref('all');
 
 // Dummy Data
-const devices = ref([
-    { id: 'DEV-8821', name: 'Central AC', location: 'Living Room', lastUpdated: '2 mins ago', status: 'active' },
-    { id: 'DEV-9932', name: 'Smart Fridge', location: 'Kitchen', lastUpdated: '5 mins ago', status: 'active' },
-    { id: 'DEV-1043', name: 'Office Lights', location: 'Office', lastUpdated: '2 hours ago', status: 'offline' },
-    { id: 'DEV-1154', name: 'EV Charger', location: 'Garage', lastUpdated: '1 day ago', status: 'active' },
-    { id: 'DEV-1265', name: 'Bedroom Fan', location: 'Bedroom', lastUpdated: '3 days ago', status: 'offline' },
-    { id: 'DEV-1376', name: 'Washing Machine', location: 'Laundry', lastUpdated: '12 mins ago', status: 'active' },
-]);
+const devices = ref<Appliance[]>([]);
 
 // Computed property for filtering
 const filteredDevices = computed(() => {
     return devices.value.filter(device => {
         const matchesSearch =
             device.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            device.id.toLowerCase().includes(searchQuery.value.toLowerCase());
+            device.device_code.toLowerCase().includes(searchQuery.value.toLowerCase());
         const matchesStatus = statusFilter.value === 'all' || device.status === statusFilter.value;
         return matchesSearch && matchesStatus;
     });
+});
+
+onMounted(async () => {
+    const data = await applianceService.getAll();
+    console.log(data);
+    devices.value = data;
 });
 </script>

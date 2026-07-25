@@ -22,7 +22,7 @@
                                     <span class="font-medium">Total Consumption</span>
                                 </div>
                                 <div class="flex justify-between items-end mt-3">
-                                    <h2 class="text-3xl font-bold">1,245 <span
+                                    <h2 class="text-3xl font-bold">{{ summary?.total_energy_kwh }} <span
                                             class="text-lg font-normal opacity-70">kWh</span></h2>
                                     <span class="badge bg-white/20 text-white border-0 gap-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
@@ -47,7 +47,8 @@
                                     <span class="font-medium">Estimated Bill</span>
                                 </div>
                                 <div class="flex justify-between items-end mt-3">
-                                    <h2 class="text-3xl font-bold text-base-content">$186.75</h2>
+                                    <h2 class="text-3xl font-bold text-base-content">$ {{ summary?.estimated_cost }}
+                                    </h2>
                                     <span class="badge bg-error/10 text-error border-0 gap-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -71,8 +72,9 @@
                                     <span class="font-medium">Active Devices</span>
                                 </div>
                                 <div class="flex justify-between items-end mt-3">
-                                    <h2 class="text-3xl font-bold text-base-content">14 <span
-                                            class="text-lg font-normal text-base-content/50">/ 22</span></h2>
+                                    <h2 class="text-3xl font-bold text-base-content">{{ summary?.active_devices }} <span
+                                            class="text-lg font-normal text-base-content/50">/ {{ summary?.device_count
+                                            }}</span></h2>
                                     <span class="badge bg-success/10 text-success border-0 gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
                                         Nominal
@@ -244,7 +246,8 @@
 <script setup lang="ts">
 import EnergyTrendChart from '@/components/EnergyTrendChart.vue';
 import Navbar from '@/components/Navbar.vue';
-import { ref, computed } from 'vue';
+import { readingService, type ReadingSummary } from '@/services/reading.service';
+import { ref, computed, onMounted } from 'vue';
 
 const currentPage = ref('analytics');
 
@@ -269,4 +272,11 @@ const offPeakUsage = ref(465);
 const totalUsage = computed(() => peakUsage.value + offPeakUsage.value);
 const peakPercentage = computed(() => Math.round((peakUsage.value / totalUsage.value) * 100));
 const offPeakPercentage = computed(() => 100 - peakPercentage.value);
+
+const summary = ref<ReadingSummary>();
+
+onMounted(async () => {
+    const data = await readingService.getSummary({ range: "" })
+    summary.value = data;
+})
 </script>
